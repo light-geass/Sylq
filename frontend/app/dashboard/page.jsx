@@ -1,8 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { getHistory } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import AccessDenied from '@/components/AccessDenied';
 
 const MOCK_STATS = [
   { label: 'Tests taken',   value: '—', color: '#abc7ff', key: 'total' },
@@ -40,17 +42,35 @@ export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user?.profile_exists) {
       getHistory(10)
         .then(setHistory)
         .catch(() => setHistory([]))
         .finally(() => setLoading(false));
-    } else if (!authLoading && !user) {
+    } else if (!authLoading) {
       setLoading(false);
     }
   }, [user, authLoading]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#45f0f4]/20 border-t-[#45f0f4] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user || !user.profile_exists) {
+    return (
+      <AccessDenied 
+        title="Restricted Access" 
+        message="The dashboard is only available to registered users. Please join GATER to track your progress."
+      />
+    );
+  }
 
   const stats = MOCK_STATS.map((s) => {
     if (!history.length) return s;
@@ -67,7 +87,7 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="relative-z pt-24 pb-20 section-container">
+    <div className="relative-z pt-7 pb-20 section-container">
       {/* Header */}
       <div className="mb-10">
         <p className="text-xs font-bold tracking-widest uppercase text-secondary mb-2"

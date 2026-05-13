@@ -49,7 +49,8 @@ export const AuthProvider = ({ children }) => {
         if (profileData) {
           setUser({ ...fbUser, ...profileData });
         } else {
-          setUser(fbUser); // Fallback to firebase user only
+          // If getMe failed or returned no data, profile doesn't exist
+          setUser({ ...fbUser, profile_exists: false });
         }
       } else {
         setUser(null);

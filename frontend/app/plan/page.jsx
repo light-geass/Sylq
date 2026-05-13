@@ -1,11 +1,29 @@
-import Link from 'next/link';
+"use client";
 
-export const metadata = {
-  title: 'Study Plan - GATER',
-  description: 'Your personalized GATE preparation roadmap.',
-};
+import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import AccessDenied from '@/components/AccessDenied';
 
 export default function StudyPlanPage() {
+  const { user, loading: authLoading } = useAuth();
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#45f0f4]/20 border-t-[#45f0f4] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user || !user.profile_exists) {
+    return (
+      <AccessDenied 
+        title="Your Study Plan" 
+        message="Log in to generate a personalized study roadmap based on your test performance."
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen pb-32">
       {/* ── Hero ── */}

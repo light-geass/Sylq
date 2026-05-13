@@ -16,7 +16,7 @@ from google.genai import types
 
 from config import settings
 from database import supabase
-from routers.auth import get_current_user
+from routers.auth import get_current_user, get_optional_current_user
 from schemas import UserInfo
 
 router = APIRouter(prefix="/chatbot", tags=["Chatbot"])
@@ -44,17 +44,23 @@ class ChatRequest(BaseModel):
 @router.post("/stream")
 def chat_stream(
     body:         ChatRequest,
-    current_user: UserInfo = Depends(get_current_user),
+    current_user: UserInfo | None = Depends(get_optional_current_user),
 ):
     """
     Stream an AI response token-by-token using SSE.
     """
     # ── Rate limit free users ──────────────────────────────────────────────
-    if current_user.plan != "premium":
+    if current_user and current_user.plan != "premium":
         if body.msg_count >= settings.free_chatbot_msgs_per_test:
             raise HTTPException(
                 status_code=429,
                 detail=f"Free plan limit reached ({settings.free_chatbot_msgs_per_test} msgs). Upgrade for unlimited."
+            )
+    elif not current_user:
+        if body.msg_count >= 2:
+            raise HTTPException(
+                status_code=429,
+                detail="Guest limit reached. Please log in or sign up."
             )
 
     # ── Build system prompt ────────────────────────────────────────────────

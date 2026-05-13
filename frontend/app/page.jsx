@@ -63,12 +63,12 @@ export default function LandingPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user?.profile_exists) {
       router.push('/dashboard');
     }
   }, [user, loading, router]);
 
-  if (loading || user) {
+  if (loading || user?.profile_exists) {
     return null; // Or a loading spinner
   }
 

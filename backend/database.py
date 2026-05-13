@@ -36,7 +36,7 @@ test_sessions table (NEW — run the SQL below in Supabase SQL editor):
 
   CREATE TABLE test_sessions (
       id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id         TEXT NOT NULL,                    -- Stores Clerk User ID (e.g., 'user_2...')
+      user_id         TEXT NOT NULL,                    -- Stores Firebase User ID
       question_ids    JSONB NOT NULL,                   -- ordered list: ["uuid1", "uuid2", ...]
       user_answers    JSONB DEFAULT '{}',               -- {"question_id": "A"} filled on submit
       score           FLOAT,                            -- null until submitted
@@ -48,7 +48,7 @@ test_sessions table (NEW — run the SQL below in Supabase SQL editor):
   );
 
   -- NOTE: RLS with auth.uid() only works with Supabase Auth.
-  -- Since we use Clerk + Service Role Key, the backend manages access.
+  -- Since we use Firebase + Service Role Key, the backend manages access.
 """
 
 from supabase import create_client, Client

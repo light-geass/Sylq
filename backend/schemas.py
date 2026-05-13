@@ -207,6 +207,7 @@ class UserInfo(BaseModel):
     age:          Optional[int] = None
     gender:       Optional[str] = None
     plan:         str = "free"              # "free" | "premium"
+    profile_exists: bool = False
 
 class ProfileRegister(BaseModel):
     firstName: str = ""

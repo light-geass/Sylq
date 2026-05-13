@@ -1,6 +1,6 @@
 export default function ContactPage() {
   return (
-    <div className="relative-z pt-20 pb-20 section-container">
+    <div className="relative-z pt-7 pb-20 section-container">
       <div className="max-w-2xl mx-auto py-16">
         <p className="text-xs font-bold tracking-widest uppercase text-secondary mb-3"
            style={{ fontFamily: 'JetBrains Mono' }}>

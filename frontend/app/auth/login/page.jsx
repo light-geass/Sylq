@@ -5,6 +5,7 @@ import { auth } from '@/app/firebase_SDK';
 import {
   GoogleAuthProvider,
   signInWithPopup,
+  signOut as firebaseSignOut,
   sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
@@ -12,7 +13,7 @@ import {
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { setApiToken } from '@/lib/api';
+import { setApiToken, checkEmail } from '@/lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -25,7 +26,7 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user?.profile_exists) {
       router.push('/dashboard');
     }
   }, [user, authLoading, router]);
@@ -55,7 +56,7 @@ export default function LoginPage() {
     }
   }, [router]);
 
-  if (authLoading || user) return null;
+  if (authLoading || user?.profile_exists) return null;
 
   const handleSendEmailLink = async (e) => {
     e.preventDefault();
@@ -64,6 +65,15 @@ export default function LoginPage() {
     setInfo('');
 
     try {
+      // 1. Check if user exists in our database
+      const { exists } = await checkEmail(email);
+      if (!exists) {
+        setError('No account found with this email. Please sign up first.');
+        setLoading(false);
+        return;
+      }
+
+      // 2. If exists, send magic link
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
       window.localStorage.setItem('emailForSignIn', email);
       setInfo('A sign-in link has been sent to your email. Open your email and click the link to continue. (Also check your spam folder just in case)');
@@ -102,6 +112,17 @@ export default function LoginPage() {
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
+
+      // Check if user exists in our database
+      const { exists } = await checkEmail(user.email);
+      
+      if (!exists) {
+        // User doesn't have an account — sign them out of Firebase immediately
+        await firebaseSignOut(auth);
+        setError('No account found with this email. Please sign up first.');
+        return;
+      }
+
       // Force fresh token and wait a moment for clock sync
       const idToken = await user.getIdToken(true);
       setApiToken(idToken);

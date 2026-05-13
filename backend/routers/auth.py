@@ -3,6 +3,7 @@ routers/auth.py — Firebase authentication dependency.
 """
 
 from fastapi import Depends, HTTPException, status, APIRouter
+from pydantic import BaseModel
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from config import settings
 from schemas import UserInfo, ProfileRegister, RecaptchaVerifyRequest
@@ -13,6 +14,20 @@ import httpx
 import os
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+class EmailCheckRequest(BaseModel):
+    email: str
+
+@router.post("/check-email")
+async def check_email(data: EmailCheckRequest):
+    """Check if an email is already registered in the profiles table."""
+    try:
+        res = supabase.table("profiles").select("id").eq("email", data.email).execute()
+        return {"exists": len(res.data) > 0}
+    except Exception as e:
+        print(f"[Auth] Error checking email existence: {str(e)}")
+        # If DB check fails, we default to False to be safe, but maybe log it
+        return {"exists": False}
 
 # Initialize Firebase Admin SDK safely (only if not already initialized)
 def _init_firebase():
@@ -35,6 +50,40 @@ _init_firebase()
 
 # HTTPBearer extracts the "Authorization: Bearer <token>" header automatically
 bearer_scheme = HTTPBearer()
+optional_bearer_scheme = HTTPBearer(auto_error=False)
+
+async def get_optional_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer_scheme),
+) -> UserInfo | None:
+    """Validate Firebase JWT but return None if not provided."""
+    if not credentials:
+        return None
+        
+    token = credentials.credentials
+    try:
+        decoded_token = auth.verify_id_token(token)
+        user_id = decoded_token.get("uid")
+        email = decoded_token.get("email")
+        if not user_id:
+            return None
+    except Exception:
+        return None
+
+    profile = _get_profile(user_id)
+    if not profile:
+        return UserInfo(user_id=user_id, email=email or "", plan="free", profile_exists=False)
+
+    return UserInfo(
+        user_id=user_id,
+        email=email or profile.get("email", ""),
+        first_name=profile.get("first_name"),
+        last_name=profile.get("last_name"),
+        age=profile.get("age"),
+        gender=profile.get("gender"),
+        plan=profile.get("plan", "free"),
+        profile_exists=True
+    )
+
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
@@ -60,28 +109,11 @@ async def get_current_user(
     profile = _get_profile(user_id)
 
     if not profile:
-        # Auto-create minimal profile to satisfy foreign key constraints
-        # This unblocks users who haven't completed the registration form yet
-        print(f"[Auth] Auto-creating minimal profile for {user_id}")
-        minimal_profile = {
-            "id": user_id,
-            "email": email or "",
-            "plan": "free",
-            "first_name": email.split("@")[0] if email else "New",
-            "last_name": "User",
-            "age": 0,
-            "gender": "other"
-        }
-        try:
-            res = supabase.table("profiles").upsert(minimal_profile).execute()
-            print(f"[Auth] Profile creation result: {res.data}")
-        except Exception as e:
-            print(f"[Auth] !!! CRITICAL ERROR !!! Failed to auto-create profile for {user_id}: {str(e)}")
-
         return UserInfo(
             user_id=user_id,
             email=email or "",
-            plan="free"
+            plan="free",
+            profile_exists=False
         )
 
     return UserInfo(
@@ -91,7 +123,8 @@ async def get_current_user(
         last_name=profile.get("last_name"),
         age=profile.get("age"),
         gender=profile.get("gender"),
-        plan=profile.get("plan", "free")
+        plan=profile.get("plan", "free"),
+        profile_exists=True
     )
 
 def _get_profile(user_id: str):

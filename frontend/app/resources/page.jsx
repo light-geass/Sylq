@@ -1,5 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import AccessDenied from '@/components/AccessDenied';
 
 /* ──────────────────────────────────────────────────────────
    TAB DEFINITIONS
@@ -71,12 +73,12 @@ const FORMULA_DATA = [
 
 const PYQ_DATA = [
   { id: 1, title: 'GATE DA 2026 — Question Paper + Key', year: 2026, free: true },
-  { id: 4, title: 'GATE CS 2026 — Question Paper + Key', year: 2026, free: true },
-  { id: 4, title: 'GATE CS 2025 — Question Paper + Key', year: 2025, free: true },
-  { id: 1, title: 'GATE DA 2025 — Question Paper + Key', year: 2025, free: true },
-  { id: 2, title: 'GATE DA 2024 — Question Paper + Key', year: 2024, free: true },
-  { id: 5, title: 'GATE CS 2024 — Question Paper + Key', year: 2024, free: true },
-  { id: 3, title: 'GATE DA 2023 — Question Paper + Key', year: 2023, free: true },
+  { id: 2, title: 'GATE CS 2026 — Question Paper + Key', year: 2026, free: true },
+  { id: 3, title: 'GATE CS 2025 — Question Paper + Key', year: 2025, free: true },
+  { id: 4, title: 'GATE DA 2025 — Question Paper + Key', year: 2025, free: true },
+  { id: 5, title: 'GATE DA 2024 — Question Paper + Key', year: 2024, free: true },
+  { id: 6, title: 'GATE CS 2024 — Question Paper + Key', year: 2024, free: true },
+  { id: 7, title: 'GATE DA 2023 — Question Paper + Key', year: 2023, free: true },
 ];
 
 
@@ -343,16 +345,15 @@ function PYQSection({ query }) {
    ────────────────────────────────────────────────────────── */
 
 export default function ResourcesPage() {
+  const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('mindmaps');
   const [search, setSearch] = useState('');
   const tabBarRef = useRef(null);
   const [indicatorStyle, setIndicatorStyle] = useState({});
 
-  const q = search.toLowerCase().trim();
-
-  /* Update the sliding indicator position when tab changes */
+  /* Indicator effect logic (must stay above early returns) */
   useEffect(() => {
-    if (!tabBarRef.current) return;
+    if (!tabBarRef.current || !activeTab) return;
     const activeEl = tabBarRef.current.querySelector(`[data-tab="${activeTab}"]`);
     if (activeEl) {
       const barRect = tabBarRef.current.getBoundingClientRect();
@@ -363,6 +364,25 @@ export default function ResourcesPage() {
       });
     }
   }, [activeTab]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#45f0f4]/20 border-t-[#45f0f4] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user || !user.profile_exists) {
+    return (
+      <AccessDenied 
+        title="Premium Resources" 
+        message="Log in to access mindmaps, curated books, handwritten notes, and formula sheets."
+      />
+    );
+  }
+
+  const q = search.toLowerCase().trim();
 
   const renderContent = () => {
     switch (activeTab) {

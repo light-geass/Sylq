@@ -83,6 +83,8 @@ export default function TopBar() {
   const router    = useRouter();
 
   const hidden = pathname?.startsWith('/test/') && !pathname?.includes('/history');
+  const isAuthPage = pathname?.startsWith('/auth/');
+  const hasProfile = user?.profile_exists === true;
 
   /* Close panel on outside click — but not when clicking the trigger button */
   useEffect(() => {
@@ -113,7 +115,7 @@ export default function TopBar() {
     };
   }, [menuOpen]);
 
-  if (hidden) return null;
+  if (hidden || isAuthPage) return null;
 
   return (
     <>
@@ -144,6 +146,16 @@ export default function TopBar() {
 
         <div className="flex items-center gap-3">
           <Link
+            href="/about"
+            className="pointer-events-auto text-sm font-medium text-[#8b919f] hover:text-white transition-colors duration-200 px-1"
+            style={{ fontFamily: 'Inter, sans-serif' }}
+          >
+            About
+          </Link>
+
+          <div className="w-px h-4 bg-white/10" />
+
+          <Link
             href="/pricing"
             className="pointer-events-auto text-sm font-medium text-[#8b919f] hover:text-white transition-colors duration-200 px-1"
             style={{ fontFamily: 'Inter, sans-serif' }}
@@ -155,7 +167,7 @@ export default function TopBar() {
 
           {loading ? (
             <div className="w-8 h-8 rounded-full bg-white/5 animate-pulse" />
-          ) : user ? (
+          ) : hasProfile ? (
             <button
               ref={buttonRef}
               onClick={() => setMenuOpen((v) => !v)}
@@ -284,7 +296,7 @@ export default function TopBar() {
                 color: '#45f0f4',
               }}
             >
-              <span>Upgrade to Pro</span>
+              <span>Upgrade to Premium</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
               </svg>

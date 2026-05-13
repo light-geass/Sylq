@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { auth } from '@/app/firebase_SDK';
 import {
   GoogleAuthProvider,
@@ -10,29 +10,49 @@ import {
   signInWithEmailLink,
   updateProfile,
 } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
 import { useAuth } from '@/context/AuthContext';
+import { checkEmail } from '@/lib/api';
 
-export default function SignupPage() {
+function SignupForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialEmail = searchParams.get('email') || '';
+  const initialFirstName = searchParams.get('firstName') || '';
+  const initialLastName = searchParams.get('lastName') || '';
+  const initialGender = searchParams.get('gender') || '';
+  const initialAge = searchParams.get('age') || '';
+
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    age: '',
-    gender: '',
-    email: '',
+    firstName: initialFirstName,
+    lastName: initialLastName,
+    age: initialAge,
+    gender: initialGender,
+    email: initialEmail,
   });
+
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      email: searchParams.get('email') || prev.email,
+      firstName: searchParams.get('firstName') || prev.firstName,
+      lastName: searchParams.get('lastName') || prev.lastName,
+      gender: searchParams.get('gender') || prev.gender,
+      age: searchParams.get('age') || prev.age,
+    }));
+  }, [searchParams]);
+
   const [verificationEmail, setVerificationEmail] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState('input'); // 'input' | 'sent' | 'confirmEmail'
   const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user?.profile_exists) {
       router.push('/dashboard');
     }
   }, [user, authLoading, router]);
@@ -54,11 +74,10 @@ export default function SignupPage() {
               displayName: `${signupData.firstName || ''} ${signupData.lastName || ''}`.trim(),
             });
             
-            // Force token refresh to ensure fresh token
             const idToken = await user.getIdToken(true);
             
             try {
-              const response = await axios.post(
+              await axios.post(
                 'http://localhost:8000/auth/register-profile',
                 {
                   firstName: signupData.firstName,
@@ -72,7 +91,7 @@ export default function SignupPage() {
               
               window.localStorage.removeItem('emailForSignUp');
               window.localStorage.removeItem('signupData');
-              router.push('/dashboard');
+              window.location.href = '/dashboard';
             } catch (apiErr) {
               console.error('Profile registration error:', apiErr.response?.data || apiErr.message);
               setError(apiErr.response?.data?.detail || apiErr.message || 'Failed to register profile.');
@@ -89,7 +108,7 @@ export default function SignupPage() {
     }
   }, [router]);
 
-  if (authLoading || user) return null;
+  if (authLoading || user?.profile_exists) return null;
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -99,22 +118,54 @@ export default function SignupPage() {
     setLoading(true);
     setError('');
     const provider = new GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/user.birthday.read');
+    provider.addScope('https://www.googleapis.com/auth/user.gender.read');
+
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+      let user = auth.currentUser;
+      let credential = null;
+
+      if (!user) {
+        const result = await signInWithPopup(auth, provider);
+        user = result.user;
+        credential = GoogleAuthProvider.credentialFromResult(result);
+      }
+
+      const accessToken = credential?.accessToken;
+      let googleData = { gender: '', age: '' };
+
+      if (accessToken) {
+        try {
+          const res = await fetch(`https://people.googleapis.com/v1/people/me?personFields=birthdays,genders&access_token=${accessToken}`);
+          const data = await res.json();
+          if (data.genders?.length > 0) googleData.gender = data.genders[0].value;
+          if (data.birthdays?.length > 0) {
+            const date = data.birthdays.find(b => b.date && b.date.year)?.date;
+            if (date) googleData.age = new Date().getFullYear() - date.year;
+          }
+        } catch (e) {
+          console.warn("Failed to fetch Google profile details:", e);
+        }
+      }
+
       await updateProfile(user, {
-        displayName: `${formData.firstName} ${formData.lastName}`,
+        displayName: `${formData.firstName || user.displayName?.split(' ')[0]} ${formData.lastName || user.displayName?.split(' ').slice(1).join(' ')}`.trim(),
       });
+
       const idToken = await user.getIdToken();
       await axios.post(
         'http://localhost:8000/auth/register-profile',
         {
-          ...formData,
+          firstName: formData.firstName || user.displayName?.split(' ')[0] || '',
+          lastName: formData.lastName || user.displayName?.split(' ').slice(1).join(' ') || '',
+          age: formData.age || googleData.age || 0,
+          gender: formData.gender || googleData.gender || 'other',
           email: user.email,
         },
         { headers: { Authorization: `Bearer ${idToken}` } }
       );
-      router.push('/dashboard');
+      // Force a full reload so AuthContext refetches the profile and sees profile_exists=true
+      window.location.href = '/dashboard';
     } catch (err) {
       console.error(err);
       setError(err.message || 'Google sign-up failed');
@@ -130,6 +181,13 @@ export default function SignupPage() {
     setInfo('');
 
     try {
+      const { exists } = await checkEmail(formData.email);
+      if (exists) {
+        setError('An account with this email already exists. Please login instead.');
+        setLoading(false);
+        return;
+      }
+
       await sendSignInLinkToEmail(auth, formData.email, actionCodeSettings);
       window.localStorage.setItem('emailForSignUp', formData.email);
       window.localStorage.setItem('signupData', JSON.stringify(formData));
@@ -161,8 +219,6 @@ export default function SignupPage() {
       setLoading(false);
     }
   };
-
-
 
   return (
     <div className="relative-z min-h-screen flex items-center justify-center px-4 pt-16">
@@ -325,5 +381,13 @@ export default function SignupPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-white">Loading...</div>}>
+      <SignupForm />
+    </Suspense>
   );
 }

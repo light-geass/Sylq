@@ -10,9 +10,11 @@ export default function Navbar() {
   const { user, loading } = useAuth();
 
   const isActive = (href) => pathname === href || pathname.startsWith(href + '/');
+  const isAuthPage = pathname?.startsWith('/auth/');
 
-  // Hide if not logged in or on an active test page
-  if (loading || !user) return null;
+  // Hide if not logged in, on an active test page, or on auth pages
+  if (loading || !user || isAuthPage) return null;
+  if (!user?.profile_exists) return null;
   if (pathname.match(/^\/test\/[^/]+$/) && !pathname.includes('configure') && !pathname.includes('history')) return null;
 
   return (

@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getHistory } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import AccessDenied from '@/components/AccessDenied';
 
 function ScoreBar({ pct }) {
   const color = pct >= 70 ? '#86db64' : pct >= 50 ? '#45f0f4' : '#ffb4ab';
@@ -18,23 +20,45 @@ function ScoreBar({ pct }) {
 }
 
 export default function HistoryPage() {
+  const { user, loading: authLoading } = useAuth();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    getHistory(50)
-      .then(setHistory)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
+    if (!authLoading && user?.profile_exists) {
+      getHistory(50)
+        .then(setHistory)
+        .catch((e) => setError(e.message))
+        .finally(() => setLoading(false));
+    } else if (!authLoading) {
+      setLoading(false);
+    }
+  }, [user, authLoading]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#45f0f4]/20 border-t-[#45f0f4] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user || !user.profile_exists) {
+    return (
+      <AccessDenied 
+        title="Access History" 
+        message="Please log in to view your previous test results and performance analysis."
+      />
+    );
+  }
 
   const avg = history.length
     ? (history.reduce((a, h) => a + (h.percentage ?? 0), 0) / history.length).toFixed(1)
     : null;
 
   return (
-    <div className="relative-z pt-20 pb-16 section-container">
+    <div className="relative-z pt-7 pb-16 section-container">
       <div className="pt-6 mb-8 flex items-start justify-between flex-wrap gap-4">
         <div>
           <p className="text-xs font-bold tracking-widest uppercase text-secondary mb-2"

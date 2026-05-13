@@ -74,6 +74,7 @@ export const createOrder = (planId) => req('POST', '/payments/create-order', { p
 export const verifyPayment = (data) => req('POST', '/payments/verify', data);
 
 // ── Health & Auth ──────────────────────────────────────────────────────────
+export const checkEmail  = (email)  => req('POST', '/auth/check-email', { email });
 export const healthCheck = () => req('GET', '/health');
 export const getMe       = () => req('GET', '/auth/me');
 

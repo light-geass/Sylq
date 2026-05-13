@@ -2,9 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { streamChatbot } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+
 
 const C = {
   bg:      '#0f172a',
@@ -17,8 +20,9 @@ const C = {
   muted:   '#64748b',
 };
 
-export default function ChatbotFab_Sylq({ msgLimit = 10 }) {
+export default function ChatbotFab_Sylq({ msgLimit = 50 }) {
   const pathname = usePathname();
+  const { user } = useAuth();
   const [open,       setOpen]       = useState(false);
   const [messages,   setMessages]   = useState([]);
   const [input,      setInput]      = useState('');
@@ -26,6 +30,8 @@ export default function ChatbotFab_Sylq({ msgLimit = 10 }) {
   const [msgCount,   setMsgCount]   = useState(0);
   const messagesEndRef = useRef(null);
   const inputRef       = useRef(null);
+
+  const isAuth = user?.profile_exists;
 
   // Hide on active test OR specific result pages
   const isTestActive = pathname.match(/^\/test\/[^/]+$/) && 
@@ -44,11 +50,28 @@ export default function ChatbotFab_Sylq({ msgLimit = 10 }) {
     if (open) setTimeout(() => inputRef.current?.focus(), 100);
   }, [open]);
 
-  const hitLimit = msgCount >= msgLimit;
-
   async function sendMessage() {
     const text = input.trim();
-    if (!text || streaming || hitLimit) return;
+    if (!text || streaming) return;
+
+    if (!isAuth && msgCount >= 2) {
+      const userMsg = { role: 'user', content: text };
+      const assistantMsg = { 
+        role: 'assistant', 
+        content: "Please [Sign Up](/auth/signup) or [Log In](/auth/login) for unlimited chats and full access to Sylq AI." 
+      };
+      setMessages([...messages, userMsg, assistantMsg]);
+      setInput('');
+      return;
+    }
+
+    if (isAuth && msgCount >= msgLimit) {
+      const userMsg = { role: 'user', content: text };
+      const assistantMsg = { role: 'assistant', content: "Message limit reached for this session." };
+      setMessages([...messages, userMsg, assistantMsg]);
+      setInput('');
+      return;
+    }
 
     const userMsg = { role: 'user', content: text };
     const newMessages = [...messages, userMsg];
@@ -92,8 +115,10 @@ export default function ChatbotFab_Sylq({ msgLimit = 10 }) {
 
   const handleKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
 
+  const isAuthPage = pathname?.startsWith('/auth/');
+
   // Rule of hooks: No early returns before all hooks are called
-  if (isTestActive || isResultPage) return null;
+  if (isTestActive || isResultPage || isAuthPage) return null;
 
   return (
     <>

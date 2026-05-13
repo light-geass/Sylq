@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import AccessDenied from '@/components/AccessDenied';
 
 /* ── Placeholder course data ── */
 const FREE_COURSES = [
@@ -242,8 +244,26 @@ function CourseCard({ course }) {
 }
 
 export default function CoursesPage() {
+  const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'free' | 'paid'
   const [search, setSearch] = useState('');
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#45f0f4]/20 border-t-[#45f0f4] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user || !user.profile_exists) {
+    return (
+      <AccessDenied 
+        title="Curated Learning" 
+        message="Log in to access expert-vetted learning paths and premium GATE preparation programs."
+      />
+    );
+  }
 
   const q = search.toLowerCase().trim();
   const filtered = ALL_COURSES.filter((c) => {

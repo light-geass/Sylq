@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createTest } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import AccessDenied from '@/components/AccessDenied';
 
 // Full GATE DA syllabus — mirrors your database seed data exactly
 const SUBJECTS = [
@@ -106,6 +108,7 @@ const DIFFICULTIES = [
 const TOTAL_TOPICS = SUBJECTS.reduce((a, s) => a + s.topics.length, 0);
 
 export default function ConfigurePage() {
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
   // All topics selected by default
@@ -120,6 +123,23 @@ export default function ConfigurePage() {
   const [pyqOnly,      setPyqOnly]      = useState(false);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState('');
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#45f0f4]/20 border-t-[#45f0f4] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user || !user.profile_exists) {
+    return (
+      <AccessDenied 
+        title="Start Your Prep" 
+        message="Log in to configure and take your first GATE practice test."
+      />
+    );
+  }
 
   // Derived
   const selectedSubjectIds = SUBJECTS
@@ -205,7 +225,7 @@ export default function ConfigurePage() {
   };
 
   return (
-    <div className="relative-z pt-20 pb-16 section-container">
+    <div className="relative-z pt-7 pb-16 section-container">
       {/* Header */}
       <div className="pt-6 mb-8">
         <p className="text-xs font-bold tracking-widest uppercase text-secondary mb-2"
