@@ -201,7 +201,6 @@ class UserInfo(BaseModel):
     Every protected route receives this as `current_user`.
     """
     user_id:      str
-    phone_number: Optional[str] = None      # Optional now
     email:        str                       # Primary auth identifier
     first_name:   Optional[str] = None
     last_name:    Optional[str] = None
@@ -210,11 +209,22 @@ class UserInfo(BaseModel):
     plan:         str = "free"              # "free" | "premium"
 
 class ProfileRegister(BaseModel):
-    firstName: str
-    lastName:  str
-    age:       int
-    gender:    str
-    email:     str
+    firstName: str = ""
+    lastName:  str = ""
+    age:       Optional[int] = None
+    gender:    str = "other"
+    email:     str = ""
+
+    @field_validator("age", mode="before")
+    @classmethod
+    def coerce_age(cls, v):
+        """Handle empty strings and string numbers from frontend forms."""
+        if v is None or v == "" or v == "":
+            return None
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return None
 
 class RecaptchaVerifyRequest(BaseModel):
     """Request body for reCAPTCHA Enterprise verification."""

@@ -11,6 +11,8 @@ import {
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import { setApiToken } from '@/lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -19,7 +21,14 @@ export default function LoginPage() {
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState('input'); // 'input' | 'sent' | 'confirmEmail'
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, authLoading, router]);
 
   const actionCodeSettings = {
     url: typeof window !== 'undefined' ? `${window.location.origin}/auth/login` : '',
@@ -46,6 +55,8 @@ export default function LoginPage() {
     }
   }, [router]);
 
+  if (authLoading || user) return null;
+
   const handleSendEmailLink = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -55,7 +66,7 @@ export default function LoginPage() {
     try {
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
       window.localStorage.setItem('emailForSignIn', email);
-      setInfo('A sign-in link has been sent to your email. Open your email and click the link to continue.');
+      setInfo('A sign-in link has been sent to your email. Open your email and click the link to continue. (Also check your spam folder just in case)');
       setStep('sent');
     } catch (err) {
       console.error(err);
@@ -89,7 +100,11 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
 
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      // Force fresh token and wait a moment for clock sync
+      const idToken = await user.getIdToken(true);
+      setApiToken(idToken);
       router.push('/dashboard');
     } catch (err) {
       console.error(err);

@@ -241,7 +241,7 @@ export default function TopBar() {
                 {user?.displayName || user?.email?.split('@')[0] || 'User'}
               </p>
               <p className="text-xs text-[#6b7280] uppercase tracking-widest font-bold" style={{ fontFamily: 'JetBrains Mono' }}>
-                Free Plan
+                {user?.plan || 'Free'} Plan
               </p>
             </div>
           </div>
@@ -273,35 +273,53 @@ export default function TopBar() {
           ))}
         </div>
 
-        <div className="px-5 py-4 border-t border-white/05 space-y-2">
-          <Link
-            href="/pricing"
-            className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150"
-            style={{
-              background: 'linear-gradient(135deg, rgba(69,240,244,0.1), rgba(171,199,255,0.06))',
-              border: '1px solid rgba(69,240,244,0.15)',
-              color: '#45f0f4',
-            }}
-          >
-            <span>Upgrade to Pro</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-            </svg>
-          </Link>
-          <button
-            onClick={async () => {
-              await signOut();
-              setMenuOpen(false);
-              router.push('/');
-            }}
-            className="flex items-center gap-2 w-full px-4 py-2 rounded-xl text-xs text-[#6b7280] hover:text-[#ef4444] transition-colors duration-150"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            Sign out
-          </button>
-        </div>
+        {user?.plan !== 'premium' ? (
+          <div className="px-5 py-4 border-t border-white/05 space-y-2">
+            <Link
+              href="/pricing"
+              className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150"
+              style={{
+                background: 'linear-gradient(135deg, rgba(69,240,244,0.1), rgba(171,199,255,0.06))',
+                border: '1px solid rgba(69,240,244,0.15)',
+                color: '#45f0f4',
+              }}
+            >
+              <span>Upgrade to Pro</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+            </Link>
+            <button
+              onClick={async () => {
+                await signOut();
+                setMenuOpen(false);
+                router.push('/');
+              }}
+              className="flex items-center gap-2 w-full px-4 py-2 rounded-xl text-xs text-[#6b7280] hover:text-[#ef4444] transition-colors duration-150"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Sign out
+            </button>
+          </div>
+        ) : (
+          <div className="px-5 py-4 border-t border-white/05 space-y-2">
+            <button
+              onClick={async () => {
+                await signOut();
+                setMenuOpen(false);
+                router.push('/');
+              }}
+              className="flex items-center gap-2 w-full px-4 py-2 rounded-xl text-xs text-[#6b7280] hover:text-[#ef4444] transition-colors duration-150"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
     </>
   );

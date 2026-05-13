@@ -1,4 +1,9 @@
+"use client";
+
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 const FEATURES = [
   {
@@ -54,6 +59,19 @@ const FEATURES = [
 
 
 export default function LandingPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
+
+  if (loading || user) {
+    return null; // Or a loading spinner
+  }
+
   return (
     <div className="relative-z">
       {/* ── Hero ──────────────────────────────────────── */}

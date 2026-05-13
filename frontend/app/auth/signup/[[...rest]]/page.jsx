@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
+import { useAuth } from '@/context/AuthContext';
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -27,7 +28,14 @@ export default function SignupPage() {
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState('input'); // 'input' | 'sent' | 'confirmEmail'
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, authLoading, router]);
 
   const actionCodeSettings = {
     url: typeof window !== 'undefined' ? `${window.location.origin}/auth/signup` : '',
@@ -81,6 +89,8 @@ export default function SignupPage() {
     }
   }, [router]);
 
+  if (authLoading || user) return null;
+
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -123,7 +133,7 @@ export default function SignupPage() {
       await sendSignInLinkToEmail(auth, formData.email, actionCodeSettings);
       window.localStorage.setItem('emailForSignUp', formData.email);
       window.localStorage.setItem('signupData', JSON.stringify(formData));
-      setInfo('A sign-up link has been sent to your email. Open your email and click the link to complete registration.');
+      setInfo('A sign-up link has been sent to your email. Open your email and click the link to complete registration. (Also check your spam folder just in case)');
       setStep('sent');
     } catch (err) {
       console.error(err);

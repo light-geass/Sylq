@@ -73,8 +73,9 @@ const asyncGetAuthHeaders = async () => {
 export const createOrder = (planId) => req('POST', '/payments/create-order', { plan_id: planId });
 export const verifyPayment = (data) => req('POST', '/payments/verify', data);
 
-// ── Health ─────────────────────────────────────────────────────────────────
+// ── Health & Auth ──────────────────────────────────────────────────────────
 export const healthCheck = () => req('GET', '/health');
+export const getMe       = () => req('GET', '/auth/me');
 
 // ---Chatbot----------------------------------------------------------
 export async function streamChatbot(payload, onChunk, onDone) {

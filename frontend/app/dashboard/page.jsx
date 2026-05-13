@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getHistory } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 const MOCK_STATS = [
   { label: 'Tests taken',   value: '—', color: '#abc7ff', key: 'total' },
@@ -36,15 +37,20 @@ function StatusChip({ status }) {
 }
 
 export default function DashboardPage() {
+  const { user, loading: authLoading } = useAuth();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getHistory(10)
-      .then(setHistory)
-      .catch(() => setHistory([]))
-      .finally(() => setLoading(false));
-  }, []);
+    if (!authLoading && user) {
+      getHistory(10)
+        .then(setHistory)
+        .catch(() => setHistory([]))
+        .finally(() => setLoading(false));
+    } else if (!authLoading && !user) {
+      setLoading(false);
+    }
+  }, [user, authLoading]);
 
   const stats = MOCK_STATS.map((s) => {
     if (!history.length) return s;

@@ -46,7 +46,6 @@ async def get_current_user(
         decoded_token = auth.verify_id_token(token)
         user_id = decoded_token.get("uid")
         email = decoded_token.get("email")
-        phone_number = decoded_token.get("phone_number")
 
         if not user_id:
             raise ValueError("Missing UID claim")
@@ -67,9 +66,8 @@ async def get_current_user(
         minimal_profile = {
             "id": user_id,
             "email": email or "",
-            "phone_number": phone_number or "0000000000",
             "plan": "free",
-            "first_name": "New",
+            "first_name": email.split("@")[0] if email else "New",
             "last_name": "User",
             "age": 0,
             "gender": "other"
@@ -82,14 +80,12 @@ async def get_current_user(
 
         return UserInfo(
             user_id=user_id,
-            phone_number=phone_number,
-            email=email,
+            email=email or "",
             plan="free"
         )
 
     return UserInfo(
         user_id=user_id,
-        phone_number=phone_number or profile.get("phone_number", ""),
         email=email or profile.get("email", ""),
         first_name=profile.get("first_name"),
         last_name=profile.get("last_name"),
@@ -130,10 +126,10 @@ async def register_profile(
 
     new_profile = {
         "id": current_user.user_id,
-        "first_name": data.firstName,
-        "last_name": data.lastName,
-        "age": data.age,
-        "gender": data.gender,
+        "first_name": data.firstName or (email.split("@")[0] if (email := data.email or current_user.email) else "User"),
+        "last_name": data.lastName or "User",
+        "age": data.age or 0,
+        "gender": data.gender or "other",
         "email": data.email or current_user.email,
         "plan": "free"
     }
@@ -160,7 +156,7 @@ async def verify_recaptcha(data: RecaptchaVerifyRequest):
     """
     recaptcha_api_key = settings.recaptcha_api_key
     recaptcha_site_key = settings.recaptcha_site_key
-    project_id = "gater-15268"
+    project_id = "sylq-5ee51"
 
     url = (
         f"https://recaptchaenterprise.googleapis.com/v1/"
