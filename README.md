@@ -4,7 +4,7 @@ Sylq is a comprehensive platform for AI-powered test generation and analysis. It
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14, Tailwind CSS
+- **Frontend**: Next.js 16, Tailwind CSS
 - **Backend**: FastAPI (Python)
 - **Authentication**: Firebase Authentication
 - **Database**: Supabase (PostgreSQL)
