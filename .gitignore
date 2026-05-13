@@ -38,3 +38,4 @@ Thumbs.db
 # Firebase
 .firebase/
 firebase-debug.log*
+FIREBASE_AUTH_REFERENCE.md
