@@ -1,0 +1,11 @@
+pdfplumber
+easyocr
+python-docx
+groq
+supabase
+pydantic
+python-dotenv
+Pillow
+tqdm
+pandas
+PyMuPDF
