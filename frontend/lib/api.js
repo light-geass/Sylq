@@ -72,11 +72,19 @@ const asyncGetAuthHeaders = async () => {
 // ── Payments ───────────────────────────────────────────────────────────────
 export const createOrder = (planId) => req('POST', '/payments/create-order', { plan_id: planId });
 export const verifyPayment = (data) => req('POST', '/payments/verify', data);
+export const getPaymentHistory = () => req('GET', '/payments/history');
 
 // ── Health & Auth ──────────────────────────────────────────────────────────
 export const checkEmail  = (email)  => req('POST', '/auth/check-email', { email });
 export const healthCheck = () => req('GET', '/health');
 export const getMe       = () => req('GET', '/auth/me');
+export const updateProfile = (data) => req('PATCH', '/auth/profile', data);
+
+// ── Courses ────────────────────────────────────────────────────────────────
+export const getCourses   = () => req('GET', '/courses');
+export const getMyCourses = () => req('GET', '/courses/my');
+export const enrollCourse = (courseId) => req('POST', `/courses/${courseId}/enroll`);
+
 
 // ---Chatbot----------------------------------------------------------
 export async function streamChatbot(payload, onChunk, onDone) {

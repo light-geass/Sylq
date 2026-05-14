@@ -42,9 +42,9 @@ Required JSON format:
 {{
   "overall_verdict": "One honest sentence about overall performance",
   "roadmap": [
-    {"priority": 1, "topic": "Topic name", "action_plan": "Actionable steps to master this topic"},
-    {"priority": 2, "topic": "Topic name", "action_plan": "Actionable steps to master this topic"},
-    {"priority": 3, "topic": "Topic name", "action_plan": "Actionable steps to master this topic"}
+    {{"priority": 1, "topic": "Topic name", "action_plan": "Actionable steps to master this topic"}},
+    {{"priority": 2, "topic": "Topic name", "action_plan": "Actionable steps to master this topic"}},
+    {{"priority": 3, "topic": "Topic name", "action_plan": "Actionable steps to master this topic"}}
   ],
   "key_strengths": ["topic1", "topic2"],
   "key_weaknesses": ["topic1", "topic2"]
@@ -103,10 +103,10 @@ def generate_study_plan(topic_summary: list[dict], percentage: float) -> dict:
         print(f"[Analysis] Gemini API error: {e}")
         # If it's a model not found error, try a standard one?
         if "not found" in str(e).lower():
-            print("[Analysis] Attempting recovery with gemini-3-flash-lite...")
+            print("[Analysis] Attempting recovery with gemini-2.0-flash-lite...")
             try:
                 rec_resp = gemini_client.models.generate_content(
-                    model="gemini-3-flash-lite",
+                    model="models/gemini-3.1-flash-lite",
                     contents=prompt,
                     config={'response_mime_type': 'application/json'}
                 )

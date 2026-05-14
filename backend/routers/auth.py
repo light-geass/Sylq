@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, status, APIRouter
 from pydantic import BaseModel
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from config import settings
-from schemas import UserInfo, ProfileRegister, RecaptchaVerifyRequest
+from schemas import UserInfo, ProfileRegister, RecaptchaVerifyRequest, ProfileUpdate
 from database import supabase
 import firebase_admin
 from firebase_admin import auth, credentials
@@ -61,7 +61,7 @@ async def get_optional_current_user(
         
     token = credentials.credentials
     try:
-        decoded_token = auth.verify_id_token(token)
+        decoded_token = auth.verify_id_token(token, clock_skew_seconds=60)
         user_id = decoded_token.get("uid")
         email = decoded_token.get("email")
         if not user_id:
@@ -92,7 +92,7 @@ async def get_current_user(
     token = credentials.credentials
 
     try:
-        decoded_token = auth.verify_id_token(token)
+        decoded_token = auth.verify_id_token(token, clock_skew_seconds=60)
         user_id = decoded_token.get("uid")
         email = decoded_token.get("email")
 
@@ -235,3 +235,40 @@ async def get_my_profile(current_user: UserInfo = Depends(get_current_user)):
     """Return the current authenticated user's info (used by frontend checks)."""
     return current_user.model_dump()
 
+
+@router.patch("/profile")
+async def update_profile(
+    data: ProfileUpdate,
+    current_user: UserInfo = Depends(get_current_user),
+):
+    """
+    Update editable profile fields (first_name, last_name, age, gender).
+    Email and plan are intentionally excluded — they must not be changed here.
+    """
+    update_payload = {}
+    if data.first_name is not None:
+        update_payload["first_name"] = data.first_name
+    if data.last_name is not None:
+        update_payload["last_name"] = data.last_name
+    if data.age is not None:
+        update_payload["age"] = data.age
+    if data.gender is not None:
+        update_payload["gender"] = data.gender
+
+    if not update_payload:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    try:
+        res = (
+            supabase.table("profiles")
+            .update(update_payload)
+            .eq("id", current_user.user_id)
+            .execute()
+        )
+        if not res.data:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        return {"status": "success", "updated": update_payload}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")

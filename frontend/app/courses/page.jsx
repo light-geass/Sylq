@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { getCourses, enrollCourse } from '@/lib/api';
 import AccessDenied from '@/components/AccessDenied';
 
 /* ── Placeholder course data ── */
@@ -158,29 +159,20 @@ function Stars({ rating }) {
   );
 }
 
-function CourseCard({ course }) {
+function CourseCard({ course, onEnroll }) {
   const badgeStyle = course.badge ? BADGE_STYLES[course.badge] : null;
   const accentColor = course.isPaid ? '#f8fafc' : '#cbd5e1';
   const accentBg = course.isPaid ? 'rgba(248, 250, 252, 0.08)' : 'rgba(203, 213, 225, 0.08)';
+  const [enrolling, setEnrolling] = useState(false);
 
   return (
-    <a
-      href={course.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 glass-card"
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = course.isPaid ? 'rgba(171, 199, 255, 0.25)' : 'rgba(134, 219, 100, 0.25)';
-        e.currentTarget.style.boxShadow = `0 8px 32px ${course.isPaid ? 'rgba(171, 199, 255, 0.08)' : 'rgba(134, 219, 100, 0.08)'}`;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-        e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.2)';
-      }}
+    <div
+      className="group rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 glass-card flex flex-col h-full"
+      style={{ borderColor: 'rgba(255, 255, 255, 0.08)' }}
     >
       {/* Thumbnail placeholder */}
       <div
-        className="w-full h-32 flex items-center justify-center relative"
+        className="w-full h-32 flex items-center justify-center relative shrink-0"
         style={{
           background: `linear-gradient(135deg, ${accentBg}, rgba(69, 240, 244, 0.05))`,
         }}
@@ -211,7 +203,7 @@ function CourseCard({ course }) {
       </div>
 
       {/* Info */}
-      <div className="p-4">
+      <div className="p-4 flex flex-col flex-1">
         <p className="text-[10px] font-mono mb-1 tracking-wider uppercase" style={{ color: accentColor }}>
           {course.platform} • {course.isPaid ? course.provider : course.channel}
         </p>
@@ -230,7 +222,7 @@ function CourseCard({ course }) {
           </div>
         )}
 
-        <div className="flex flex-wrap gap-1.5 mt-3">
+        <div className="flex flex-wrap gap-1.5 mt-3 mb-4">
           {course.tags.map((tag) => (
             <span key={tag} className="px-2 py-0.5 rounded-md text-[10px] font-mono text-[#8b919f]"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -238,15 +230,61 @@ function CourseCard({ course }) {
             </span>
           ))}
         </div>
+
+        <div className="mt-auto pt-2">
+            {course.isPaid ? (
+                <button
+                    onClick={() => {
+                        setEnrolling(true);
+                        onEnroll(course.id).finally(() => setEnrolling(false));
+                    }}
+                    disabled={enrolling}
+                    className="w-full py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all duration-200 cyber-btn-cyan disabled:opacity-50"
+                >
+                    {enrolling ? 'Enrolling...' : 'Enroll Now'}
+                </button>
+            ) : (
+                <a
+                    href={course.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider text-center block transition-all duration-200 cyber-btn-ghost"
+                >
+                    Watch Now →
+                </a>
+            )}
+        </div>
       </div>
-    </a>
+    </div>
   );
 }
 
 export default function CoursesPage() {
   const { user, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'free' | 'paid'
+  const [activeTab, setActiveTab] = useState('all'); 
   const [search, setSearch] = useState('');
+  const [dbCourses, setDbCourses] = useState([]);
+
+  useEffect(() => {
+    if (user?.profile_exists) {
+      getCourses()
+        .then(data => {
+            if (data && data.length > 0) setDbCourses(data);
+        })
+        .catch(err => console.error("Failed to fetch courses from DB:", err));
+    }
+  }, [user]);
+
+  const displayCourses = dbCourses.length > 0 ? dbCourses : ALL_COURSES;
+
+  const handleEnroll = async (courseId) => {
+    try {
+        await enrollCourse(courseId);
+        alert("Enrolled successfully! Check 'My Courses' to resume.");
+    } catch (err) {
+        alert("Enrollment failed: " + err.message);
+    }
+  };
 
   if (authLoading) {
     return (
@@ -266,11 +304,11 @@ export default function CoursesPage() {
   }
 
   const q = search.toLowerCase().trim();
-  const filtered = ALL_COURSES.filter((c) => {
+  const filtered = displayCourses.filter((c) => {
     const matchesSearch = !q || 
       c.title.toLowerCase().includes(q) || 
-      (c.isPaid ? c.provider.toLowerCase().includes(q) : c.channel.toLowerCase().includes(q)) || 
-      c.tags.some((t) => t.toLowerCase().includes(q));
+      (c.isPaid ? (c.provider || '').toLowerCase().includes(q) : (c.channel || '').toLowerCase().includes(q)) || 
+      c.tags?.some((t) => t.toLowerCase().includes(q));
     
     if (activeTab === 'free') return matchesSearch && !c.isPaid;
     if (activeTab === 'paid') return matchesSearch && c.isPaid;
@@ -286,7 +324,7 @@ export default function CoursesPage() {
   return (
     <div className="min-h-screen pb-32">
       {/* ── Hero Section ── */}
-      <div className="section-container mb-10">
+      <div className="section-container mb-10 pt-8">
         <div className="text-center max-w-2xl mx-auto">
           <h1 className="text-display-lg text-on-surface mb-4">
             Learn from the <span className="text-[#45f0f4]">best.</span>
@@ -297,7 +335,7 @@ export default function CoursesPage() {
         </div>
       </div>
 
-      {/* ── Filter tabs (glassmorphic pill) ── */}
+      {/* ── Filter tabs ── */}
       <div className="flex justify-center mb-10">
         <div
           className="inline-flex items-center gap-1 p-1 rounded-2xl"
@@ -353,16 +391,6 @@ export default function CoursesPage() {
               className="flex-1 bg-transparent text-sm text-on-surface placeholder:text-[#6b7280] focus:outline-none"
               style={{ fontFamily: 'Inter, sans-serif' }}
             />
-            {search && (
-              <button
-                onClick={() => setSearch('')}
-                className="flex-shrink-0 p-0.5 rounded-full transition-colors duration-150 hover:bg-white/10"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b919f" strokeWidth="2" strokeLinecap="round">
-                  <path d="M18 6L6 18" /><path d="M6 6l12 12" />
-                </svg>
-              </button>
-            )}
           </div>
         </div>
       </div>
@@ -388,7 +416,7 @@ export default function CoursesPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filtered.map((course) => (
-            <CourseCard key={course.id} course={course} />
+            <CourseCard key={course.id} course={course} onEnroll={handleEnroll} />
           ))}
         </div>
 

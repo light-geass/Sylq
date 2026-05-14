@@ -154,7 +154,7 @@ def generate_analysis(
         "videos":        videos,
         "topic_summary": topic_summary,
     }
-    supabase.table("test_analyses").insert(row).execute()
+    supabase.table("test_analyses").upsert(row).execute()
 
     return {
         "test_id":       test_id,

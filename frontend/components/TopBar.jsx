@@ -259,7 +259,9 @@ export default function TopBar() {
             </div>
             <div>
               <p className="text-sm font-semibold text-white truncate max-w-[180px]">
-                {user?.displayName || user?.email?.split('@')[0] || 'User'}
+                {user?.first_name 
+                  ? `${user.first_name} ${user.last_name || ''}`.trim() 
+                  : user?.displayName || user?.email?.split('@')[0] || 'User'}
               </p>
               <p className="text-xs text-[#6b7280] uppercase tracking-widest font-bold" style={{ fontFamily: 'JetBrains Mono' }}>
                 {user?.plan || 'Free'} Plan

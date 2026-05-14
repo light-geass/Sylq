@@ -37,7 +37,7 @@ from fastapi.responses import JSONResponse
 
 from config import settings
 from database import warm_lookup_cache
-from routers import questions, tests, auth as auth_router
+from routers import questions, tests, auth as auth_router, courses as courses_router
 from routers.analysis import router as analysis_router   # Phase 5
 from routers.chatbot import router as chatbot_router
 from routers.payments import router as payments_router
@@ -111,6 +111,7 @@ app.include_router(analysis_router)    # /analysis/{id}/generate, /analysis/{id}
 app.include_router(chatbot_router) 
 app.include_router(payments_router)   # new payment routes
 app.include_router(auth_router.router) # auth routes
+app.include_router(courses_router.router)
 
 # ── Health check ───────────────────────────────────────────────────────────────
 # Simple endpoint to verify the server is alive.

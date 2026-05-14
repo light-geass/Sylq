@@ -227,7 +227,41 @@ class ProfileRegister(BaseModel):
         except (ValueError, TypeError):
             return None
 
+
+class ProfileUpdate(BaseModel):
+    """Fields the user may update from the profile page. All optional."""
+    first_name: Optional[str] = None
+    last_name:  Optional[str] = None
+    age:        Optional[int] = None
+    gender:     Optional[str] = None
+
+    @field_validator("age", mode="before")
+    @classmethod
+    def coerce_age(cls, v):
+        if v is None or v == "":
+            return None
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return None
+
 class RecaptchaVerifyRequest(BaseModel):
     """Request body for reCAPTCHA Enterprise verification."""
     token:  str
     action: str = "LOGIN"
+
+
+class CourseOut(BaseModel):
+    id: str
+    title: str
+    provider: Optional[str] = None
+    platform: str
+    original_price: Optional[int] = None
+    offer_price: Optional[int] = None
+    rating: float = 0.0
+    url: str
+    tags: list[str] = []
+    badge: Optional[str] = None
+    is_paid: bool = False
+    duration: Optional[str] = None
+    channel: Optional[str] = None

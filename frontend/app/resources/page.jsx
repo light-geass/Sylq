@@ -1,7 +1,49 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import AccessDenied from '@/components/AccessDenied';
+
+/* ──────────────────────────────────────────────────────────
+   BOOKMARK HELPERS  (localStorage-based)
+   ────────────────────────────────────────────────────────── */
+function loadBookmarks() {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem('sylq_bookmarks') || '[]'); } catch { return []; }
+}
+function saveBookmarks(arr) {
+  localStorage.setItem('sylq_bookmarks', JSON.stringify(arr));
+  window.dispatchEvent(new Event('bookmarks_updated'));
+}
+function toggleBookmark(resource) {
+  const all = loadBookmarks();
+  const idx = all.findIndex((b) => b.key === resource.key);
+  if (idx >= 0) { all.splice(idx, 1); } else { all.push(resource); }
+  saveBookmarks(all);
+  return idx < 0; // returns true if now saved
+}
+function isBookmarked(key) { return loadBookmarks().some((b) => b.key === key); }
+
+/* ── Instagram-style bookmark icon ── */
+function SaveButton({ resourceKey, resource }) {
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { setSaved(isBookmarked(resourceKey)); }, [resourceKey]);
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); e.preventDefault(); const nowSaved = toggleBookmark({ key: resourceKey, ...resource }); setSaved(nowSaved); }}
+      className="p-1.5 rounded-lg transition-all duration-200 hover:scale-110 hover:bg-white/5"
+      title={saved ? 'Remove from saved' : 'Save resource'}
+      style={{ lineHeight: 0 }}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24"
+        fill={saved ? '#e2e8f0' : 'none'}
+        stroke="#e2e8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        className="transition-all duration-200"
+      >
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+      </svg>
+    </button>
+  );
+}
 
 /* ──────────────────────────────────────────────────────────
    TAB DEFINITIONS
@@ -104,13 +146,16 @@ function MindmapSection({ query }) {
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)'; }}
         >
           {/* Visual header */}
-          <div className="w-full h-24 rounded-xl mb-4 flex items-center justify-center"
+          <div className="w-full h-24 rounded-xl mb-4 flex items-center justify-center relative"
             style={{ background: 'linear-gradient(135deg, rgba(69, 240, 244, 0.06), rgba(171, 199, 255, 0.04))' }}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#45f0f4" strokeWidth="1.2" opacity="0.5">
               <circle cx="12" cy="12" r="3"/><path d="M12 2v7"/><path d="M12 15v7"/>
               <path d="M4.93 4.93l4.24 4.24"/><path d="M14.83 14.83l4.24 4.24"/>
               <path d="M2 12h7"/><path d="M15 12h7"/>
             </svg>
+            <div className="absolute top-2 right-2">
+              <SaveButton resourceKey={`mindmap-${item.id}`} resource={{ title: item.title, category: 'mindmaps', subtitle: item.chapter }} />
+            </div>
           </div>
 
           <div className="flex items-center justify-between mb-2">
@@ -198,6 +243,9 @@ function BooksSection({ query }) {
             <span className="text-[9px] text-[#6b7280] font-mono">affiliate</span>
           </div>
 
+          {/* Save */}
+          <SaveButton resourceKey={`book-${book.id}`} resource={{ title: book.title, category: 'books', subtitle: `by ${book.author}` }} />
+
           {/* Arrow */}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#414753" strokeWidth="2" strokeLinecap="round"
             className="flex-shrink-0 group-hover:stroke-[#abc7ff] transition-colors">
@@ -249,6 +297,7 @@ function NotesSection({ query }) {
             }}>
             {note.free ? 'FREE' : note.price}
           </span>
+          <SaveButton resourceKey={`note-${note.id}`} resource={{ title: note.title, category: 'notes', subtitle: `${note.pages} pages` }} />
         </div>
       ))}
       {filtered.length === 0 && (
@@ -267,12 +316,15 @@ function FormulaSection({ query }) {
       {filtered.map((f) => (
         <div
           key={f.id}
-          className="group rounded-2xl p-6 text-center transition-all duration-300 cursor-pointer hover:-translate-y-1"
+          className="group rounded-2xl p-6 text-center transition-all duration-300 cursor-pointer hover:-translate-y-1 relative"
           style={{
             background: 'rgba(22, 27, 34, 0.85)',
             border: '1px solid rgba(255, 255, 255, 0.06)',
           }}
         >
+          <div className="absolute top-3 right-3">
+            <SaveButton resourceKey={`formula-${f.id}`} resource={{ title: f.title, category: 'formulas', subtitle: `${f.pages} pages` }} />
+          </div>
           <div className="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center"
             style={{ background: 'rgba(69, 240, 244, 0.08)' }}>
             <span className="text-xl" style={{ fontFamily: 'JetBrains Mono', color: '#45f0f4' }}>∑</span>
@@ -325,6 +377,7 @@ function PYQSection({ query }) {
             style={{ background: 'rgba(134, 219, 100, 0.1)', border: '1px solid rgba(134, 219, 100, 0.15)' }}>
             FREE
           </span>
+          <SaveButton resourceKey={`pyq-${p.id}`} resource={{ title: p.title, category: 'pyqs', subtitle: `Year ${p.year}` }} />
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#414753" strokeWidth="2" strokeLinecap="round"
             className="group-hover:stroke-[#45f0f4] transition-colors flex-shrink-0">
             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
