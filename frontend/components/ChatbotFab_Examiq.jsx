@@ -8,6 +8,8 @@ import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { streamChatbot } from '@/lib/api';
 
 const C = {
@@ -52,12 +54,12 @@ export default function ChatbotFab_Examiq({ testId = null, activeQuestion = null
   useEffect(() => {
     if (activeQuestion) {
       setContext(activeQuestion);
-      if (open) {
-        setMessages(prev => [
-          ...prev,
-          { role: 'assistant', content: `Focusing on: **${activeQuestion.topic_name || 'this question'}**. How can I help?` }
-        ]);
-      }
+      setOpen(true); // Auto-open when user clicks "Ask AI" on a question
+      
+      // Clear history to prevent hallucinations from previous question context
+      setMessages([
+        { role: 'assistant', content: `Focusing on: **${activeQuestion.topic_name || 'this question'}**. How can I help?` }
+      ]);
     }
   }, [activeQuestion?.id]);
 
@@ -120,15 +122,23 @@ export default function ChatbotFab_Examiq({ testId = null, activeQuestion = null
         .examiq-msg p:last-child { margin-bottom: 0; }
         .examiq-msg ul, .examiq-msg ol { margin-left: 1.25rem; margin-bottom: 0.75rem; }
         .examiq-msg li { margin-bottom: 0.25rem; }
-        .examiq-msg strong { color: #45f0f4; font-weight: 700; }
         .examiq-msg code { background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 4px; font-family: monospace; }
         .examiq-msg h1, .examiq-msg h2, .examiq-msg h3 { font-size: 1.1em; font-weight: 700; margin: 1rem 0 0.5rem 0; color: #58a6ff; }
+        .examiq-msg table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 12px; display: block; overflow-x: auto; white-space: nowrap; }
+        .examiq-msg th, .examiq-msg td { padding: 8px; border: 1px solid rgba(255,255,255,0.1); text-align: left; }
+        .examiq-msg th { background: rgba(255,255,255,0.05); color: #45f0f4; }
+        .katex-display { margin: 0.5em 0; overflow-x: auto; overflow-y: hidden; }
+
+        @media (max-width: 768px) {
+          .examiq-fab { bottom: 100px !important; right: 16px !important; width: 48px !important; height: 48px !important; }
+          .examiq-panel { bottom: 160px !important; right: 16px !important; height: min(500px, calc(100vh - 280px)) !important; width: calc(100vw - 32px) !important; }
+        }
       `}</style>
 
       {/* FAB Button - Positioned exactly like Sylq */}
       <button
         onClick={() => setOpen(!open)}
-        className="fixed z-[60] flex items-center justify-center transition-all duration-300 group hover:scale-110 active:scale-95"
+        className="examiq-fab fixed z-[90] flex items-center justify-center transition-all duration-300 group hover:scale-110 active:scale-95"
         style={{
           right: '24px',
           bottom: '24px',
@@ -155,9 +165,9 @@ export default function ChatbotFab_Examiq({ testId = null, activeQuestion = null
 
       {/* Panel */}
       {open && (
-        <div style={{
-          position: 'fixed', bottom: 94, right: 24, zIndex: 55,
-          width: 'min(calc(100vw - 48px), 360px)', height: '520px',
+        <div className="examiq-panel" style={{
+          position: 'fixed', bottom: 94, right: 24, zIndex: 80,
+          width: 'min(calc(100vw - 40px), 480px)', height: 'min(calc(100vh - 120px), 640px)',
           background: C.card, border: `1px solid ${C.border}`, borderRadius: 16,
           display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
           animation: 'slideUp 0.2s ease', overflow: 'hidden',
@@ -169,8 +179,8 @@ export default function ChatbotFab_Examiq({ testId = null, activeQuestion = null
                   <span style={{ fontSize: 13, fontWeight: 800, color: '#003738' }}>E</span>
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Examiq Tutor</div>
-                  <div style={{ fontSize: 10, color: C.dim }}>{context ? 'Question Mode' : 'General Analysis'}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Examiq AI</div>
+                  <div style={{ fontSize: 10, color: C.dim }}>{context ? 'Analysis Mode' : 'General Analysis'}</div>
                 </div>
              </div>
              <span style={{ fontSize: 10, color: C.dim }}>{msgCount}/{msgLimit}</span>
@@ -180,7 +190,7 @@ export default function ChatbotFab_Examiq({ testId = null, activeQuestion = null
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {messages.length === 0 && (
               <div style={{ textAlign: 'center', color: C.muted, fontSize: 12, marginTop: 30 }}>
-                I'm Examiq. Ask me about your test results!
+                I'm Examiq AI. Ask me about your test results!
               </div>
             )}
             {messages.map((msg, i) => (
@@ -195,7 +205,10 @@ export default function ChatbotFab_Examiq({ testId = null, activeQuestion = null
                     {msg.role === 'user' ? (
                       <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
                     ) : (
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm, remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
+                      >
                         {msg.content}
                       </ReactMarkdown>
                     )}

@@ -7,6 +7,7 @@ import BackgroundEffects from '@/components/BackgroundEffects';
 import ChatbotFab_Sylq from '@/components/ChatbotFab_Sylq';
 import { AuthProvider } from '@/context/AuthContext';
 import './globals.css';
+import 'katex/dist/katex.min.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -28,7 +29,7 @@ export default function RootLayout({ children }) {
           {/* Custom GATER TopBar handles the user profile/login logic internally */}
           <TopBar />
 
-          <main className="relative-z min-h-screen pb-24 pt-20">
+          <main className="relative-z min-h-screen pb-24 pt-24">
             {children}
           </main>
 

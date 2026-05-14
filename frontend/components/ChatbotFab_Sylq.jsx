@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { streamChatbot } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -133,12 +135,21 @@ export default function ChatbotFab_Sylq({ msgLimit = 50 }) {
         .sylq-msg code { background: rgba(0,0,0,0.3); padding: 2px 4px; borderRadius: 4px; font-family: monospace; }
         .sylq-msg h1, .sylq-msg h2, .sylq-msg h3 { font-size: 1.1em; font-weight: 700; margin: 1rem 0 0.5rem 0; color: #38bdf8; }
         .sylq-msg blockquote { border-left: 3px solid #38bdf8; padding-left: 10px; color: #94a3b8; font-style: italic; }
+        .sylq-msg table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 12px; display: block; overflow-x: auto; white-space: nowrap; }
+        .sylq-msg th, .sylq-msg td { padding: 8px; border: 1px solid rgba(255,255,255,0.1); text-align: left; }
+        .sylq-msg th { background: rgba(255,255,255,0.05); color: #67e8f9; }
+        .katex-display { margin: 0.5em 0; overflow-x: auto; overflow-y: hidden; }
+
+        @media (max-width: 768px) {
+          .sylq-fab { bottom: 100px !important; right: 16px !important; width: 48px !important; height: 48px !important; }
+          .sylq-panel { bottom: 160px !important; right: 16px !important; height: min(500px, calc(100vh - 280px)) !important; width: calc(100vw - 32px) !important; }
+        }
       `}</style>
 
       {/* FAB Button - Sylq Design */}
       <button
         onClick={() => setOpen(!open)}
-        className="fixed z-[60] flex items-center justify-center transition-all duration-300 group hover:scale-110 active:scale-95"
+        className="sylq-fab fixed z-[90] flex items-center justify-center transition-all duration-300 group hover:scale-110 active:scale-95"
         style={{
           right: '24px',
           bottom: '24px',
@@ -164,8 +175,8 @@ export default function ChatbotFab_Sylq({ msgLimit = 50 }) {
 
       {/* Chat Panel */}
       {open && (
-        <div style={{
-          position: 'fixed', bottom: 94, right: 24, zIndex: 55,
+        <div className="sylq-panel" style={{
+          position: 'fixed', bottom: 94, right: 24, zIndex: 80,
           width: 'min(calc(100vw - 48px), 360px)', height: '500px',
           background: C.card, borderRadius: '20px', border: `1px solid ${C.border}`,
           boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
@@ -202,7 +213,10 @@ export default function ChatbotFab_Sylq({ msgLimit = 50 }) {
                     {msg.role === 'user' ? (
                       <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
                     ) : (
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm, remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
+                      >
                         {msg.content}
                       </ReactMarkdown>
                     )}

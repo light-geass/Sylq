@@ -12,6 +12,9 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { submitTest } from '@/lib/api';
 
 const STATUS = { unanswered: 'default', answered: 'answered', flagged: 'flagged' };
@@ -213,11 +216,29 @@ export default function ActiveTestPage() {
               </span>
             </div>
 
-            <p className="text-base text-on-surface leading-relaxed mb-8">
+            <div className="text-base text-on-surface leading-relaxed mb-8 flex flex-wrap items-center gap-x-1 gap-y-2">
               {q.question_blocks
-                ? q.question_blocks.map((b, i) => <span key={i}>{b.body}</span>)
+                ? q.question_blocks.map((b, i) => {
+                    if (b.type === 'image') {
+                      return (
+                        <div key={i} className="w-full my-2">
+                          <img src={b.url} alt={`Question figure ${i}`} className="max-w-full h-auto rounded-lg border border-outline-variant/30 shadow-sm" />
+                        </div>
+                      );
+                    }
+                    if (b.type === 'latex') {
+                      return (
+                        <span key={i} className="inline-block">
+                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                            {`$${b.body}$`}
+                          </ReactMarkdown>
+                        </span>
+                      );
+                    }
+                    return <span key={i} className="whitespace-pre-wrap">{b.body}</span>;
+                  })
                 : q.question_text}
-            </p>
+            </div>
 
             {/* NAT input */}
             {q.question_type === 'NAT' ? (

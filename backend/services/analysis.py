@@ -3,22 +3,22 @@ services/analysis.py
 Phase 5 — AI Post-Test Analysis engine.
 
 Three responsibilities:
-  1. generate_study_plan()    — ONE Groq API call → 3-day study plan
+  1. generate_study_plan()    — ONE Gemini API call → 3-day study plan
   2. calculate_sincerity()    — Pure math, no API → behavioral score
   3. get_recommendations()    — Static dict lookup → YouTube videos
 
 IMPORTANT: This is called once per test and the result is stored in DB.
-           Never call Groq again for the same test_id (idempotent endpoint).
+           Never call Gemini again for the same test_id (idempotent endpoint).
 """
 
 import json
 import re
-from groq import Groq
+from google import genai
 from config import settings
 from services.video_map import get_video_recommendations   # noqa: F401 (re-exported)
 
-# Initialize Groq Client
-client = Groq(api_key=settings.groq_api_key)
+# Initialize Clients
+gemini_client = genai.Client(api_key=settings.gemini_api_key)
 
 # ── Study plan prompt ─────────────────────────────────────────────────────────
 _PLAN_PROMPT = """\
@@ -41,10 +41,10 @@ Rules:
 Required JSON format:
 {{
   "overall_verdict": "One honest sentence about overall performance",
-  "days": [
-    {{"day": 1, "focus": "Topic name", "tasks": ["Task 1", "Task 2", "Task 3"]}},
-    {{"day": 2, "focus": "Topic name", "tasks": ["Task 1", "Task 2", "Task 3"]}},
-    {{"day": 3, "focus": "Topic name", "tasks": ["Task 1", "Task 2", "Task 3"]}}
+  "roadmap": [
+    {"priority": 1, "topic": "Topic name", "action_plan": "Actionable steps to master this topic"},
+    {"priority": 2, "topic": "Topic name", "action_plan": "Actionable steps to master this topic"},
+    {"priority": 3, "topic": "Topic name", "action_plan": "Actionable steps to master this topic"}
   ],
   "key_strengths": ["topic1", "topic2"],
   "key_weaknesses": ["topic1", "topic2"]
@@ -53,7 +53,7 @@ Required JSON format:
 
 def generate_study_plan(topic_summary: list[dict], percentage: float) -> dict:
     """
-    Calls Groq API with the topic summary → returns a parsed study plan dict.
+    Calls Gemini API with the topic summary → returns a parsed study plan dict.
     """
     # Format topic lines for the prompt
     lines = []
@@ -69,33 +69,56 @@ def generate_study_plan(topic_summary: list[dict], percentage: float) -> dict:
         topic_lines = topic_lines,
     )
 
-    model_name = "llama-3.1-8b-instant"
+    model_name = "models/gemma-4-31b-it"
     try:
-        print(f"[DEBUG] Sending prompt to Groq ({model_name})...")
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ],
+        print(f"[Analysis] Attempting Gemini Study Plan with model: {model_name}")
+        
+        if not settings.gemini_api_key:
+            return _fallback_plan(topic_summary, percentage)
+
+        # Move the context-independent rules to system_instruction for faster processing
+        system_instruction = (
+            "You are an expert GATE DA coach. Analyze test results and return a logical priority sequence of topics to cover. "
+            "Rule: Weakest topics (< 50%) MUST be Priority 1 and 2. "
+            "Rule: Return ONLY valid JSON. NO markdown. NO preamble."
+        )
+
+        response = gemini_client.models.generate_content(
             model=model_name,
-            response_format={"type": "json_object"}
+            contents=prompt,
+            config={
+                'system_instruction': system_instruction,
+                'response_mime_type': 'application/json',
+                'temperature': 0.1,
+            }
         )
         
-        raw = chat_completion.choices[0].message.content
-        print(f"[DEBUG] Groq raw response received: {raw[:100]}...")
+        raw = response.text
+        if not raw:
+            return _fallback_plan(topic_summary, percentage)
 
         return json.loads(raw)
 
     except Exception as e:
-        print(f"[Analysis] Groq API error: {e}")
+        print(f"[Analysis] Gemini API error: {e}")
+        # If it's a model not found error, try a standard one?
+        if "not found" in str(e).lower():
+            print("[Analysis] Attempting recovery with gemini-3-flash-lite...")
+            try:
+                rec_resp = gemini_client.models.generate_content(
+                    model="gemini-3-flash-lite",
+                    contents=prompt,
+                    config={'response_mime_type': 'application/json'}
+                )
+                return json.loads(rec_resp.text)
+            except Exception: pass
+            
         return _fallback_plan(topic_summary, percentage)
 
 
 def _fallback_plan(topic_summary: list[dict], percentage: float) -> dict:
     """
-    Rule-based fallback if Groq fails.
+    Rule-based fallback if Gemini fails.
     No AI — just sorted by score to find weak/strong topics.
     """
     scored = [
@@ -113,32 +136,24 @@ def _fallback_plan(topic_summary: list[dict], percentage: float) -> dict:
         else "Foundation needs work — revise core concepts before attempting more timed practice."
     )
 
-    days = []
+    roadmap = []
     for i, topic in enumerate(weak[:3], 1):
-        days.append({
-            "day":   i,
-            "focus": topic,
-            "tasks": [
-                f"Revise the core theory and formulas for {topic}",
-                f"Solve 15 focused practice questions on {topic}",
-                f"Re-attempt the questions you got wrong on {topic} in this test",
-            ]
+        roadmap.append({
+            "priority": i,
+            "topic":    topic,
+            "action_plan": f"Review core concepts for {topic}, solve 15 practice questions, and analyze mistakes from this test.",
         })
 
-    if not days:
-        days = [{
-            "day":   1,
-            "focus": "Full revision",
-            "tasks": [
-                "Review all topic notes",
-                "Attempt a 28-question mixed test",
-                "Identify new weak areas from the result",
-            ]
+    if not roadmap:
+        roadmap = [{
+            "priority": 1,
+            "topic": "General Review",
+            "action_plan": "Review all topic notes, attempt a mixed-topic practice set, and identify new weak areas.",
         }]
 
     return {
         "overall_verdict":  verdict,
-        "days":             days,
+        "roadmap":          roadmap,
         "key_strengths":    strong[:3],
         "key_weaknesses":   weak[:3],
     }

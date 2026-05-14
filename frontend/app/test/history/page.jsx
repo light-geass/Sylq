@@ -101,10 +101,10 @@ export default function HistoryPage() {
       )}
 
       {history.length > 0 && (
-        <div className="glass-card rounded-xl overflow-hidden">
-          {/* Table header */}
+        <div className="glass-card rounded-xl overflow-hidden border border-white/[0.05]">
+          {/* Table header - Hidden on mobile */}
           <div
-            className="grid gap-4 px-5 py-3 text-xs font-bold uppercase tracking-widest text-outline"
+            className="hidden md:grid gap-4 px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-outline"
             style={{
               fontFamily: 'JetBrains Mono',
               borderBottom: '1px solid rgba(255,255,255,0.07)',
@@ -115,77 +115,103 @@ export default function HistoryPage() {
             <span>Score</span>
             <span>Marks</span>
             <span>Status</span>
-            <span />
+            <span className="text-right">Action</span>
           </div>
 
           {history.map((t, i) => (
             <div
               key={t.id}
-              className="grid gap-4 px-5 py-4 hover:bg-white/[0.02] transition-colors items-center"
+              className="grid grid-cols-1 md:grid-cols-[1fr_160px_100px_80px_80px] gap-4 px-5 py-6 md:px-6 md:py-4 hover:bg-white/[0.02] transition-colors items-center"
               style={{
                 borderBottom: i < history.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                gridTemplateColumns: '1fr 160px 100px 80px 80px',
               }}
             >
-              {/* Date */}
-              <div>
-                <p className="text-sm text-on-surface">
-                  {t.submitted_at
-                    ? new Date(t.submitted_at).toLocaleDateString('en-IN', {
-                        day: '2-digit', month: 'short', year: 'numeric',
-                      })
-                    : new Date(t.created_at).toLocaleDateString('en-IN', {
-                        day: '2-digit', month: 'short', year: 'numeric',
-                      })}
-                </p>
-                <p className="text-xs text-outline mt-0.5" style={{ fontFamily: 'JetBrains Mono' }}>
-                  {t.submitted_at
-                    ? new Date(t.submitted_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-                    : '—'}
-                </p>
+              {/* Row 1 on Mobile: Date and Action */}
+              <div className="flex justify-between items-start md:block">
+                <div>
+                  <p className="text-sm font-semibold text-on-surface">
+                    {t.submitted_at
+                      ? new Date(t.submitted_at).toLocaleDateString('en-IN', {
+                          day: '2-digit', month: 'short', year: 'numeric',
+                        })
+                      : new Date(t.created_at).toLocaleDateString('en-IN', {
+                          day: '2-digit', month: 'short', year: 'numeric',
+                        })}
+                  </p>
+                  <p className="text-[10px] text-outline mt-0.5" style={{ fontFamily: 'JetBrains Mono' }}>
+                    {t.submitted_at
+                      ? new Date(t.submitted_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+                      : '—'}
+                  </p>
+                </div>
+                
+                {/* Action - Visible on Mobile Right */}
+                <div className="md:hidden">
+                  {t.status === 'submitted' ? (
+                    <Link
+                      href={`/test/${t.id}/result`}
+                      className="px-4 py-2 rounded-lg bg-secondary/10 text-secondary text-xs font-bold border border-secondary/20"
+                      style={{ fontFamily: 'JetBrains Mono' }}
+                    >
+                      Review →
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/test/${t.id}`}
+                      className="px-4 py-2 rounded-lg bg-primary/10 text-primary text-xs font-bold border border-primary/20"
+                      style={{ fontFamily: 'JetBrains Mono' }}
+                    >
+                      Resume →
+                    </Link>
+                  )}
+                </div>
               </div>
 
-              {/* Score bar */}
-              <div>
-                {t.percentage != null ? <ScoreBar pct={t.percentage} /> : <span className="text-xs text-outline">—</span>}
+              {/* Score bar & Marks - Flex on Mobile */}
+              <div className="flex items-center justify-between md:contents">
+                <div className="md:block">
+                  {t.percentage != null ? <ScoreBar pct={t.percentage} /> : <span className="text-xs text-outline">—</span>}
+                </div>
+
+                <span className="text-sm font-bold md:block" style={{ fontFamily: 'JetBrains Mono', color: '#c1c6d5' }}>
+                  {t.score ?? '—'} <span className="text-outline text-[10px] font-normal mx-0.5">/</span> {t.total_marks}
+                </span>
               </div>
 
-              {/* Marks */}
-              <span className="text-sm font-bold" style={{ fontFamily: 'JetBrains Mono', color: '#c1c6d5' }}>
-                {t.score ?? '—'} / {t.total_marks}
-              </span>
+              {/* Status chip - Visible on Desktop only or as small badge */}
+              <div className="flex justify-between items-center md:contents mt-2 md:mt-0 pt-3 md:pt-0 border-t border-white/[0.03] md:border-t-0">
+                <span
+                  className="text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded border"
+                  style={{
+                    fontFamily: 'JetBrains Mono',
+                    background: t.status === 'submitted' ? 'rgba(134,219,100,0.05)' : 'rgba(69,240,244,0.05)',
+                    color:      t.status === 'submitted' ? '#86db64' : '#45f0f4',
+                    borderColor: t.status === 'submitted' ? 'rgba(134,219,100,0.2)' : 'rgba(69,240,244,0.2)',
+                  }}
+                >
+                  {t.status === 'submitted' ? 'Done' : 'Active'}
+                </span>
 
-              {/* Status chip */}
-              <span
-                className="text-xs font-bold tracking-widest uppercase px-2 py-1 rounded text-center"
-                style={{
-                  fontFamily: 'JetBrains Mono',
-                  background: t.status === 'submitted' ? 'rgba(134,219,100,0.1)' : 'rgba(69,240,244,0.1)',
-                  color:      t.status === 'submitted' ? '#86db64' : '#45f0f4',
-                }}
-              >
-                {t.status === 'submitted' ? 'Done' : 'Active'}
-              </span>
-
-              {/* Action */}
-              <div className="text-right">
-                {t.status === 'submitted' ? (
-                  <Link
-                    href={`/test/${t.id}/result`}
-                    className="text-xs text-secondary hover:underline"
-                    style={{ fontFamily: 'JetBrains Mono' }}
-                  >
-                    Review →
-                  </Link>
-                ) : (
-                  <Link
-                    href={`/test/${t.id}`}
-                    className="text-xs text-primary hover:underline"
-                    style={{ fontFamily: 'JetBrains Mono' }}
-                  >
-                    Resume →
-                  </Link>
-                )}
+                {/* Action - Visible on Desktop Right */}
+                <div className="hidden md:block text-right">
+                  {t.status === 'submitted' ? (
+                    <Link
+                      href={`/test/${t.id}/result`}
+                      className="text-xs text-secondary hover:underline font-bold"
+                      style={{ fontFamily: 'JetBrains Mono' }}
+                    >
+                      Review →
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/test/${t.id}`}
+                      className="text-xs text-primary hover:underline font-bold"
+                      style={{ fontFamily: 'JetBrains Mono' }}
+                    >
+                      Resume →
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
           ))}

@@ -82,7 +82,11 @@ export default function TopBar() {
   const pathname  = usePathname();
   const router    = useRouter();
 
-  const hidden = pathname?.startsWith('/test/') && !pathname?.includes('/history');
+  const isTestRunning = pathname?.startsWith('/test/') && 
+                        !pathname?.includes('/history') && 
+                        !pathname?.includes('/result') &&
+                        !pathname?.includes('/configure');
+  const hidden = isTestRunning;
   const isAuthPage = pathname?.startsWith('/auth/');
   const hasProfile = user?.profile_exists === true;
 
@@ -120,7 +124,11 @@ export default function TopBar() {
   return (
     <>
       {/* ── TopBar strip ── */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 pt-2 h-20 pointer-events-none">
+      <header className="fixed top-0 left-0 right-0 z-[100] h-20 pointer-events-none">
+        {/* Background Mask - ensures content doesn't 'collide' with the bar items */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0D1117] via-[#0D1117]/80 to-transparent backdrop-blur-md" />
+        
+        <div className="relative flex items-center justify-between px-5 pt-2 h-full">
         <Link href="/" className="pointer-events-auto flex items-center gap-2.5 group select-none">
           <div className="relative">
             <img
@@ -195,6 +203,7 @@ export default function TopBar() {
               Login
             </Link>
           )}
+        </div>
         </div>
       </header>
 
@@ -286,7 +295,7 @@ export default function TopBar() {
         </div>
 
         {user?.plan !== 'premium' ? (
-          <div className="px-5 py-4 border-t border-white/05 space-y-2">
+          <div className="px-5 py-4 pb-28 md:pb-4 border-t border-white/05 space-y-2">
             <Link
               href="/pricing"
               className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150"
@@ -316,7 +325,7 @@ export default function TopBar() {
             </button>
           </div>
         ) : (
-          <div className="px-5 py-4 border-t border-white/05 space-y-2">
+          <div className="px-5 py-4 pb-28 md:pb-4 border-t border-white/05 space-y-2">
             <button
               onClick={async () => {
                 await signOut();

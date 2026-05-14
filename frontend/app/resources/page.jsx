@@ -7,11 +7,11 @@ import AccessDenied from '@/components/AccessDenied';
    TAB DEFINITIONS
    ────────────────────────────────────────────────────────── */
 const TABS = [
-  { key: 'mindmaps',  label: 'Mindmaps',   icon: 'mindmap' },
-  { key: 'books',     label: 'Books & Guides', icon: 'book' },
-  { key: 'notes',     label: 'Notes',       icon: 'notes' },
-  { key: 'formulas',  label: 'Formula Sheets', icon: 'formula' },
-  { key: 'pyqs',      label: 'PYQ Papers',  icon: 'pyq' },
+  { key: 'mindmaps',  label: 'Mindmaps', icon: 'mindmap' },
+  { key: 'books',     label: 'Books',    icon: 'book' },
+  { key: 'notes',     label: 'Notes',    icon: 'notes' },
+  { key: 'formulas',  label: 'Formulas', icon: 'formula' },
+  { key: 'pyqs',      label: "PYQ's",    icon: 'pyq' },
 ];
 
 /* ── Tab icons ── */
@@ -353,16 +353,21 @@ export default function ResourcesPage() {
 
   /* Indicator effect logic (must stay above early returns) */
   useEffect(() => {
-    if (!tabBarRef.current || !activeTab) return;
-    const activeEl = tabBarRef.current.querySelector(`[data-tab="${activeTab}"]`);
-    if (activeEl) {
-      const barRect = tabBarRef.current.getBoundingClientRect();
-      const tabRect = activeEl.getBoundingClientRect();
-      setIndicatorStyle({
-        left: tabRect.left - barRect.left,
-        width: tabRect.width,
-      });
-    }
+    const update = () => {
+      if (!tabBarRef.current || !activeTab) return;
+      const activeEl = tabBarRef.current.querySelector(`[data-tab="${activeTab}"]`);
+      if (activeEl) {
+        const barRect = tabBarRef.current.getBoundingClientRect();
+        const tabRect = activeEl.getBoundingClientRect();
+        setIndicatorStyle({
+          left: tabRect.left - barRect.left,
+          width: tabRect.width,
+        });
+      }
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
   }, [activeTab]);
 
   if (authLoading) {
@@ -451,14 +456,14 @@ export default function ResourcesPage() {
               key={key}
               data-tab={key}
               onClick={() => setActiveTab(key)}
-              className="relative z-10 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 whitespace-nowrap"
+              className="relative z-10 flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 sm:px-5 sm:py-3 rounded-xl transition-all duration-200 whitespace-nowrap min-w-[60px] sm:min-w-0"
               style={{
                 color: activeTab === key ? '#45f0f4' : '#6b7280',
                 fontFamily: 'Inter, sans-serif',
               }}
             >
               <TabIcon type={icon} active={activeTab === key} />
-              <span className="hidden sm:inline">{label}</span>
+              <span className="text-[9px] sm:text-xs font-bold tracking-tight sm:tracking-normal">{label}</span>
             </button>
           ))}
         </div>

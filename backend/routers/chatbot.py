@@ -15,6 +15,7 @@ from google import genai
 from google.genai import types
 
 from config import settings
+from services.study_planner_pipeline import describe_exam_image
 from database import supabase
 from routers.auth import get_current_user, get_optional_current_user
 from schemas import UserInfo
@@ -119,14 +120,34 @@ def _build_system_prompt(test_id: str | None, question_id: str | None, chat_type
 
     if not q: return base
 
-    q_text = " ".join(b.get("body", "") for b in (q.get("question_blocks") or []) if b.get("type") in ("text", "latex"))
+    # Extract text and describe images
+    q_blocks = q.get("question_blocks") or []
+    text_parts = []
+    image_descriptions = []
+
+    for block in q_blocks:
+        b_type = block.get("type")
+        if b_type in ("text", "latex"):
+            text_parts.append(block.get("body", ""))
+        elif b_type == "image" and block.get("url"):
+            # Use Llama 4 Scout to describe the image for the chatbot's context
+            try:
+                desc = describe_exam_image(block.get("url"))
+                image_descriptions.append(f"[Diagram Analysis]: {desc}")
+            except Exception as e:
+                print(f"[Chatbot] Vision error: {e}")
+
+    q_text = " ".join(text_parts)
+    img_context = "\n".join(image_descriptions)
+    
     subject = (q.get("subjects") or {}).get("name", "")
     topic   = (q.get("topics")   or {}).get("name", "")
 
     context = (
         f"QUESTION CONTEXT:\n"
         f"Subject: {subject} | Topic: {topic}\n"
-        f"Question: {q_text}\n"
+        f"Question Text: {q_text}\n"
+        f"Visual Context:\n{img_context if img_context else 'No diagrams available.'}\n"
         f"Correct Answer: {q['correct_answer']}\n"
         f"Explanation: {q['explanation']}\n"
     )
@@ -137,49 +158,30 @@ def _build_system_prompt(test_id: str | None, question_id: str | None, chat_type
 def _stream_ai(system_prompt: str, history: list[dict], chat_type: str):
     """
     Generator for AI streaming. 
-    - Sylq: Groq (llama-3.3-70b-versatile)
-    - Examiq: Gemini (fallback or requested model)
+    Both Sylq and Examiq now use: Groq (llama-3.3-70b-versatile)
     """
     try:
-        if chat_type == "analysis":
-            # Examiq AI - Keeping Gemini for context-heavy analysis or custom model
-            # Note: The user requested gemma-4-31b-it here, but if that fails, 
-            # we might need to fallback. For now, following instructions.
-            model_name = 'models/gemma-4-31b-it'
-            print(f"[Chatbot] Streaming Examiq from Gemini model: {model_name}")
-            
-            response = gemini_client.models.generate_content_stream(
-                model=model_name,
-                config=types.GenerateContentConfig(system_instruction=system_prompt),
-                contents=history
-            )
-            for chunk in response:
-                if chunk.text:
-                    yield f"data: {chunk.text.replace(chr(10), '\\n')}\n\n"
+        model_name = "llama-3.3-70b-versatile"
+        print(f"[Chatbot] Streaming {chat_type} from Groq model: {model_name}")
         
-        else:
-            # Sylq AI - Switching to Groq as requested
-            model_name = "llama-3.3-70b-versatile"
-            print(f"[Chatbot] Streaming Sylq from Groq model: {model_name}")
-            
-            # Convert history to OpenAI format for Groq
-            groq_messages = [{"role": "system", "content": system_prompt}]
-            for h in history:
-                role = "assistant" if h["role"] == "model" else "user"
-                groq_messages.append({"role": role, "content": h["parts"][0]["text"]})
+        # Convert history to OpenAI format for Groq
+        groq_messages = [{"role": "system", "content": system_prompt}]
+        for h in history:
+            role = "assistant" if h["role"] == "model" else "user"
+            groq_messages.append({"role": role, "content": h["parts"][0]["text"]})
 
-            response = groq_client.chat.completions.create(
-                model=model_name,
-                messages=groq_messages,
-                temperature=0.3,           # Factual and precise
-                max_completion_tokens=600, # Conserve tokens
-                stream=True,
-            )
-            
-            for chunk in response:
-                delta = chunk.choices[0].delta.content
-                if delta:
-                    yield f"data: {delta.replace(chr(10), '\\n')}\n\n"
+        response = groq_client.chat.completions.create(
+            model=model_name,
+            messages=groq_messages,
+            temperature=0.3,
+            max_completion_tokens=1024 if chat_type == "analysis" else 800,
+            stream=True,
+        )
+        
+        for chunk in response:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                yield f"data: {delta.replace(chr(10), '\\n')}\n\n"
 
         yield "data: [DONE]\n\n"
 

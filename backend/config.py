@@ -23,6 +23,7 @@ class Settings(BaseSettings):
 
     # AI Keys
     groq_api_key: str = ""
+    groq_api_key_2: str = ""
     gemini_api_key: str = ""
     mistral_api_key: str = ""
     

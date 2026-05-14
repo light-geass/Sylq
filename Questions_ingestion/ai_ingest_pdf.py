@@ -495,7 +495,7 @@ if __name__ == "__main__":
 
 
 
-    parser.add_argument("--fix-model", default="llama-3.1-8b-instant", help="Groq text model for JSON fixing")
+    parser.add_argument("--fix-model", default="llama-3.3-70b-versatile", help="Groq text model for JSON fixing")
     parser.add_argument("--answer-pdf", help="Path to official answer key PDF")
     args = parser.parse_args()
 

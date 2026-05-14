@@ -11,6 +11,10 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { getResult, generateAnalysis } from '@/lib/api';
 import ChatbotFab_Examiq from '@/components/ChatbotFab_Examiq';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import remarkGfm from 'remark-gfm';
+import rehypeKatex from 'rehype-katex';
 
 // ── Small reusable components ─────────────────────────────────────────────────
 
@@ -69,20 +73,77 @@ function TopicBar({ topic, score, total }) {
 
 function QuestionReview({ qr, index, onSelect }) {
   const [open, setOpen] = useState(false);
+
+  // Helper to normalize comparison
+  const checkMatch = (target, val, text) => {
+    if (target === undefined || target === null) return false;
+    const normalize = (s) => String(s).trim().toUpperCase();
+    
+    if (Array.isArray(target)) {
+      return target.some(t => {
+        const nt = normalize(t);
+        return nt === normalize(val) || (text && nt === normalize(text));
+      });
+    }
+    const nt = normalize(target);
+    return nt === normalize(val) || (text && nt === normalize(text));
+  };
+
+  // Helper to render content with potential math
+  const renderWithMath = (content) => {
+    if (!content) return null;
+    let processed = String(content);
+    
+    // Replace standard LaTeX delimiters with $ for remark-math
+    processed = processed.replace(/\\\(|\\\)/g, '$');
+    processed = processed.replace(/\\\[|\\\]/g, '$$$$');
+
+    if (!processed.includes('$')) {
+      // Wrap alphanumeric followed by ^ or _ or common stats
+      processed = processed.replace(/([a-zA-Z0-9]+[\^_][a-zA-Z0-9]+)/g, '$$$1$$');
+      processed = processed.replace(/(E\[[a-zA-Z\s]+\]|Var\([a-zA-Z\s]+\))/g, '$$$1$$');
+    }
+    return (
+      <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>
+        {processed}
+      </ReactMarkdown>
+    );
+  };
   const statusColor = qr.is_correct ? '#86db64' : qr.user_answer == null ? '#8b919f' : '#ffb4ab';
   const statusLabel = qr.is_correct ? 'Correct' : qr.user_answer == null ? 'Skipped' : 'Incorrect';
 
   return (
     <div className="rounded-xl overflow-hidden"
-         style={{ border:'1px solid rgba(255,255,255,0.07)' }}>
+         style={{ background: '#121418', border:'1px solid rgba(255,255,255,0.07)' }}>
       <button onClick={() => setOpen(!open)}
-              className="w-full flex items-center gap-4 p-4 text-left hover:bg-white/[0.02] transition-colors">
-        <span className="text-xs font-bold flex-shrink-0"
+              className="w-full flex items-start gap-4 p-4 text-left hover:bg-white/[0.02] transition-colors">
+        <span className="text-xs font-bold flex-shrink-0 mt-1"
               style={{ fontFamily:'JetBrains Mono', color:'#8b919f' }}>Q{index+1}</span>
-        <span className="flex-1 text-sm text-on-surface truncate">
-          {qr.question_blocks?.[0]?.body ?? '—'}
-        </span>
-        <div className="flex items-center gap-3 flex-shrink-0">
+        
+        <div className={`flex-1 text-sm text-on-surface leading-relaxed ${!open ? 'truncate' : ''}`}>
+          {qr.question_blocks?.map((b, i) => {
+            if (b.type === 'image') {
+              if (!open) return null; // Don't show images in collapsed preview
+              return (
+                <div key={i} className="w-full my-3">
+                  <img src={b.url} alt={`Question figure ${i}`} className="max-w-full h-auto rounded-lg border border-outline-variant/30 shadow-sm" />
+                </div>
+              );
+            }
+            if (b.type === 'latex') {
+              return (
+                <span key={i} className="inline-block mx-0.5">
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                    {`$${b.body}$`}
+                  </ReactMarkdown>
+                </span>
+              );
+            }
+            return <span key={i} className="whitespace-pre-wrap">{renderWithMath(b.body)}</span>;
+          })}
+        </div>
+
+        <div className="flex items-center gap-3 flex-shrink-0 mt-1">
           <span className="text-xs font-bold" style={{ fontFamily:'JetBrains Mono', color:statusColor }}>
             {statusLabel}
           </span>
@@ -98,31 +159,74 @@ function QuestionReview({ qr, index, onSelect }) {
 
       {open && (
         <div className="px-4 pb-4" style={{ borderTop:'1px solid rgba(255,255,255,0.06)' }}>
-          <p className="text-sm text-on-surface my-3 leading-relaxed">
-            {qr.question_blocks?.map((b, i) => <span key={i}>{b.body}</span>)}
-          </p>
+          <div className="mt-4" />
           {qr.options && (
-            <div className="flex flex-col gap-2 mb-4">
+            <div className="flex flex-col gap-2.5 mb-5">
               {qr.options.map((opt, idx) => {
-                const letter    = String.fromCharCode(65 + idx);
-                const isCorrect = Array.isArray(qr.correct_answer)
-                  ? qr.correct_answer.includes(letter)
-                  : qr.correct_answer === letter || qr.correct_answer === opt;
-                const isUser    = Array.isArray(qr.user_answer)
-                  ? qr.user_answer.includes(letter)
-                  : qr.user_answer === letter;
+                const letter = String.fromCharCode(65 + idx);
+                const isCorrect = checkMatch(qr.correct_answer, letter, opt);
+                const isUser    = checkMatch(qr.user_answer, letter, null);
+
+                let statusColor = '#262a31';
+                let bgColor = '#1c2026';
+                let textColor = '#c1c6d5';
+                let icon = null;
+
+                if (isCorrect) {
+                  statusColor = '#86db64';
+                  bgColor = 'rgba(134,219,100,0.08)';
+                  textColor = '#86db64';
+                  icon = (
+                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M3 7l3 3 5-5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  );
+                } else if (isUser) {
+                  statusColor = '#ffb4ab';
+                  bgColor = 'rgba(255,180,171,0.08)';
+                  textColor = '#ffb4ab';
+                  icon = (
+                    <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M3 3l8 8M11 3l-8 8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  );
+                }
+
                 return (
-                  <div key={idx} className="flex items-center gap-3 p-3 rounded-lg text-sm"
+                  <div key={idx} className="flex items-center gap-3 p-3 rounded-xl text-sm transition-all relative overflow-hidden"
                        style={{
-                         background: isCorrect ? 'rgba(134,219,100,0.08)' : isUser ? 'rgba(255,180,171,0.08)' : '#1c2026',
-                         border:`1px solid ${isCorrect?'rgba(134,219,100,0.3)':isUser?'rgba(255,180,171,0.3)':'#262a31'}`,
+                         background: bgColor,
+                         border: `1.5px solid ${statusColor}${isCorrect || isUser ? '80' : '33'}`,
                        }}>
-                    <span className="font-bold text-xs w-5"
-                          style={{ fontFamily:'JetBrains Mono',
-                            color:isCorrect?'#86db64':isUser?'#ffb4ab':'#8b919f' }}>
+                    
+                    {/* Corner badge for user selection */}
+                    {isUser && (
+                      <div className="absolute top-0 right-0 px-2 py-0.5 text-[8px] font-bold uppercase tracking-tighter"
+                           style={{ background: isCorrect ? '#86db64' : '#ffb4ab', color: '#000' }}>
+                        Your Choice
+                      </div>
+                    )}
+
+                    <span className="font-bold text-xs w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={{ 
+                            fontFamily:'JetBrains Mono',
+                            background: isCorrect ? '#86db6422' : isUser ? '#ffb4ab22' : 'rgba(255,255,255,0.05)',
+                            color: textColor,
+                            border: `1px solid ${statusColor}44`
+                          }}>
                       {letter}
                     </span>
-                    <span style={{ color:isCorrect?'#86db64':isUser?'#ffb4ab':'#c1c6d5' }}>{opt}</span>
+                    
+                    <div className="flex-1" style={{ color: (isCorrect || isUser) ? textColor : '#c1c6d5' }}>
+                      {renderWithMath(opt)}
+                    </div>
+
+                    {icon && (
+                      <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                           style={{ background: `${statusColor}22`, color: statusColor }}>
+                        {icon}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -161,10 +265,12 @@ function QuestionReview({ qr, index, onSelect }) {
                   className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
                   style={{ fontFamily: 'JetBrains Mono' }}
                 >
-                  ✦ ASK SYLQ AI
+                  ✦ ASK EXAMIQ AI
                 </button>
               </div>
-              {qr.explanation}
+              <div className="markdown-explanation">
+                {renderWithMath(qr.explanation)}
+              </div>
             </div>
           )}
         </div>
@@ -252,7 +358,7 @@ function AIAnalysisTab({ testId, pct }) {
       <div className="flex flex-col items-center gap-3">
         <div className="w-8 h-8 rounded-full border-2 border-secondary/30 border-t-secondary animate-spin" />
         <p className="text-sm text-on-surface-variant">Generating AI analysis...</p>
-        <p className="text-xs text-outline">Calling Groq · takes ~3 seconds</p>
+        <p className="text-xs text-outline">Calling Gemini · takes ~5 seconds</p>
       </div>
     </div>
   );
@@ -261,7 +367,7 @@ function AIAnalysisTab({ testId, pct }) {
     <div className="glass-card rounded-xl p-6 text-sm text-error border border-error/30"
          style={{ fontFamily:'JetBrains Mono' }}>
       {error}
-      <p className="text-outline mt-2 text-xs">Make sure GROQ_API_KEY is set in your backend .env</p>
+      <p className="text-outline mt-2 text-xs">Make sure GEMINI_API_KEY is set in your backend .env</p>
     </div>
   );
 
@@ -277,31 +383,28 @@ function AIAnalysisTab({ testId, pct }) {
              style={{ fontFamily:'JetBrains Mono' }}>AI Study Plan</p>
           <span className="text-xs px-2 py-0.5 rounded font-mono font-bold"
                 style={{ background:'rgba(69,240,244,0.1)', color:'#45f0f4' }}>
-            Groq · llama-3.1-8b
+            Gemini · Gemma 4
           </span>
         </div>
         <p className="text-sm text-on-surface-variant mb-5 mt-1 leading-relaxed italic">
           "{study_plan.overall_verdict}"
         </p>
 
-        <div className="grid md:grid-cols-3 gap-4 mb-5">
-          {(study_plan.days || []).map((day) => (
-            <div key={day.day} className="rounded-xl p-4"
+        <div className="space-y-3 mb-6">
+          <p className="text-[10px] font-bold tracking-widest uppercase text-outline mb-2"
+             style={{ fontFamily:'JetBrains Mono' }}>Improvement Roadmap</p>
+          {(study_plan.roadmap || []).map((step) => (
+            <div key={step.priority} className="rounded-xl p-4 flex items-start gap-4"
                  style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)' }}>
-              <p className="text-xs font-bold tracking-widest uppercase mb-1"
-                 style={{ fontFamily:'JetBrains Mono', color:'#45f0f4' }}>Day {day.day}</p>
-              <p className="text-sm font-semibold text-on-surface mb-3">{day.focus}</p>
-              <ul className="flex flex-col gap-2">
-                {(day.tasks || []).map((task, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-on-surface-variant">
-                    <span className="w-4 h-4 rounded flex-shrink-0 flex items-center justify-center text-[9px] font-bold mt-0.5"
-                          style={{ background:'rgba(69,240,244,0.15)', color:'#45f0f4' }}>
-                      {i + 1}
-                    </span>
-                    {task}
-                  </li>
-                ))}
-              </ul>
+              <div className="w-10 h-10 rounded-full flex-shrink-0 flex flex-col items-center justify-center border border-secondary/20"
+                   style={{ background:'rgba(69,240,244,0.05)' }}>
+                <span className="text-[8px] font-bold uppercase text-outline leading-none mb-0.5">Step</span>
+                <span className="text-sm font-bold text-secondary leading-none">{step.priority}</span>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-on-surface mb-1">{step.topic}</p>
+                <p className="text-xs text-on-surface-variant leading-relaxed">{step.action_plan}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -418,8 +521,8 @@ export default function ResultPage() {
   ];
 
   return (
-    <div className="relative-z pt-20 pb-16 section-container">
-      <div className="pt-6 mb-8">
+    <div className="relative-z pt-8 pb-16 section-container">
+      <div className="pt-4 mb-8">
         <p className="text-xs font-bold tracking-widest uppercase text-secondary mb-2"
            style={{ fontFamily:'JetBrains Mono' }}>Test complete</p>
         <h1 className="text-2xl font-bold text-on-surface">Results & Analysis</h1>
