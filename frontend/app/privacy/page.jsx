@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Privacy Policy | Sylq - the Gater',
+  title: 'Privacy Policy | Sylq AI',
   description: 'Privacy Policy for Sylq, explaining how we collect, use, and protect your data.',
 };
 
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc pl-5 space-y-2 mb-4 text-sm">
               <li><strong>Contact Data:</strong> Name, email address, and profile picture (via Google OAuth).</li>
-              <li><strong>Profile Data:</strong> Target GATE branch, target year, phone number (optional), and educational background.</li>
+              <li><strong>Profile Data:</strong> Target exam branch/subject, target year, phone number (optional), and educational background.</li>
               <li><strong>Authentication Data:</strong> OAuth tokens managed securely by Google Firebase.</li>
             </ul>
 

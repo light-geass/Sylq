@@ -28,7 +28,7 @@ Security notes:
 
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from schemas import (
@@ -39,6 +39,7 @@ from routers.auth import get_current_user
 from database import supabase
 from services.test_engine import select_questions, db_row_to_question_out, calculate_total_marks
 from services.scoring import check_answer, build_topic_summary
+from services.exam_rules import get_exam_duration
 
 router = APIRouter(prefix="/test", tags=["Tests"])
 
@@ -75,10 +76,10 @@ def create_test(
             detail="PYQ-only tests are available to premium users only"
         )
 
-    # _check_daily_limit(current_user)  # Temporarily disabled for testing
+    _check_daily_limit(current_user)
 
     # ── Select questions ───────────────────────────────────────────────────
-    raw_questions = select_questions(request)
+    raw_questions = select_questions(request, current_user.exam_name)
 
     if not raw_questions:
         raise HTTPException(
@@ -114,7 +115,7 @@ def create_test(
         test_id        = test_id,
         questions      = questions_out,
         total_marks    = total_marks,
-        duration_mins  = total_marks,   # GATE standard: 1 min per mark
+        duration_mins  = get_exam_duration(current_user.exam_name, total_marks, request.total_questions.value),
         filters_used   = request.model_dump(),
     )
 
@@ -179,6 +180,7 @@ def submit_test(
             correct_answer = q["correct_answer"],
             user_answer    = user_answer,
             marks          = q["marks"],
+            exam_name      = current_user.exam_name,
         )
 
         total_score += marks_awarded
@@ -330,15 +332,19 @@ def get_test_history(
     Returns the user's last N tests (submitted only).
     Used for the dashboard / history page.
     """
-    result = (
+    query = (
         supabase.table("test_sessions")
         .select("id, score, total_marks, status, created_at, submitted_at, filters")
         .eq("user_id", current_user.user_id)
         .eq("status", "submitted")
-        .order("submitted_at", desc=True)
-        .limit(limit)
-        .execute()
     )
+
+    if current_user.plan != "premium":
+        # Free users: last 30 days only
+        thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+        query = query.gte("created_at", thirty_days_ago)
+
+    result = query.order("submitted_at", desc=True).limit(limit).execute()
 
     sessions = result.data or []
     # Add percentage field for convenience

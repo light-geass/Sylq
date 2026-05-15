@@ -41,6 +41,8 @@ from routers import questions, tests, auth as auth_router, courses as courses_ro
 from routers.analysis import router as analysis_router   # Phase 5
 from routers.chatbot import router as chatbot_router
 from routers.payments import router as payments_router
+from routers.exams import router as exams_router
+from routers.resources import router as resources_router
 
 
 
@@ -109,9 +111,11 @@ app.include_router(questions.router)   # /questions, /questions/subjects, /quest
 app.include_router(tests.router)       # /test, /test/{id}/submit, /test/{id}/result
 app.include_router(analysis_router)    # /analysis/{id}/generate, /analysis/{id}  ← Phase 5
 app.include_router(chatbot_router) 
-app.include_router(payments_router)   # new payment routes
+app.include_router(payments_router)   # payment routes
+app.include_router(exams_router)      # /exams, /exams/{id}/branches, /exams/{id}/subjects
 app.include_router(auth_router.router) # auth routes
 app.include_router(courses_router.router)
+app.include_router(resources_router)
 
 # ── Health check ───────────────────────────────────────────────────────────────
 # Simple endpoint to verify the server is alive.

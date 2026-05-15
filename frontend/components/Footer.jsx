@@ -36,7 +36,7 @@ export default function Footer() {
               <span className="text-xl font-bold tracking-tight text-white group-hover:text-[#45f0f4] transition-colors">Sylq</span>
             </Link>
             <p className="text-sm text-on-surface-variant leading-relaxed">
-              India's most customizable GATE mock test platform, powered by AI analysis.
+              India's most customizable competitive exam preparation platform, powered by AI analysis.
             </p>
             <p className="text-xs text-outline mt-4" style={{ fontFamily: 'JetBrains Mono' }}>
               © {new Date().getFullYear()} Sylq AI. All rights reserved.

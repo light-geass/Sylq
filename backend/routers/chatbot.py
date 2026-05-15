@@ -65,7 +65,8 @@ def chat_stream(
             )
 
     # ── Build system prompt ────────────────────────────────────────────────
-    system_prompt = _build_system_prompt(body.test_id, body.question_id, body.chat_type)
+    exam_name = current_user.exam_name if current_user else None
+    system_prompt = _build_system_prompt(body.test_id, body.question_id, body.chat_type, exam_name)
 
     # ── Build history ──────────────────────────────────────────────────────
     gemini_history = []
@@ -82,13 +83,15 @@ def chat_stream(
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
-def _build_system_prompt(test_id: str | None, question_id: str | None, chat_type: str) -> str:
+def _build_system_prompt(test_id: str | None, question_id: str | None, chat_type: str, exam_name: str | None = None) -> str:
     """
     Build the context-rich system prompt.
     """
+    exam_context = exam_name or "competitive"
+    
     if chat_type == "analysis":
         base = (
-            "You are Examiq, an expert GATE exam analysis tutor. "
+            f"You are Examiq, an expert {exam_context} exam analysis tutor. "
             "You help students understand their mistakes in mock tests. "
             "Be encouraging but rigorous. Use LaTeX for math.\n\n"
         )
@@ -104,7 +107,7 @@ def _build_system_prompt(test_id: str | None, question_id: str | None, chat_type
         )
 
     if not test_id or not question_id:
-        return base + "The user is asking a general question about the platform or GATE exam."
+        return base + f"The user is asking a general question about the platform or {exam_context} exam."
 
     try:
         q = (

@@ -129,16 +129,24 @@ MOCK_COURSES = [
 ]
 
 @router.get("/", response_model=List[CourseOut])
-async def get_all_courses():
-    """Fetch all courses. Falls back to mock data if table is missing or empty."""
+async def get_all_courses(exam_id: int = None):
+    """Fetch all courses, optionally filtered by exam. Falls back to mock data if table is missing or empty."""
     try:
-        res = supabase.table("courses").select("*").execute()
+        query = supabase.table("courses").select("*")
+        if exam_id is not None:
+            query = query.contains("exam_ids", [str(exam_id)])
+        res = query.execute()
         if not res.data:
+            # If filtering by exam returns nothing, return filtered mock data
+            if exam_id is not None:
+                return [c for c in MOCK_COURSES if exam_id in (c.get("exam_ids") or [])]
             return MOCK_COURSES
         return res.data
     except Exception as e:
         # Check if it's the "table not found" error (PGRST205)
         if "PGRST205" in str(e):
+            if exam_id is not None:
+                return [c for c in MOCK_COURSES if exam_id in (c.get("exam_ids") or [])]
             return MOCK_COURSES
         raise HTTPException(status_code=500, detail=str(e))
 

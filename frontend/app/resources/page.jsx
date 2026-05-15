@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { getResources } from '@/lib/api';
 import AccessDenied from '@/components/AccessDenied';
 
 /* ──────────────────────────────────────────────────────────
@@ -401,8 +402,20 @@ export default function ResourcesPage() {
   const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('mindmaps');
   const [search, setSearch] = useState('');
+  const [dbResources, setDbResources] = useState([]);
+  const [loading, setLoading] = useState(true);
   const tabBarRef = useRef(null);
   const [indicatorStyle, setIndicatorStyle] = useState({});
+
+  useEffect(() => {
+    if (user?.exam_id) {
+      setLoading(true);
+      getResources(user.exam_id)
+        .then(setDbResources)
+        .catch(err => console.error("Failed to fetch resources:", err))
+        .finally(() => setLoading(false));
+    }
+  }, [user?.exam_id]);
 
   /* Indicator effect logic (must stay above early returns) */
   useEffect(() => {
@@ -443,6 +456,35 @@ export default function ResourcesPage() {
   const q = search.toLowerCase().trim();
 
   const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+           <div className="w-8 h-8 border-2 border-[#45f0f4]/20 border-t-[#45f0f4] rounded-full animate-spin" />
+           <p className="text-xs text-[#6b7280] font-mono">Loading resources...</p>
+        </div>
+      );
+    }
+
+    const filteredResources = dbResources.filter(r => r.category === activeTab);
+
+    if (filteredResources.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center mb-4">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-bold text-on-surface mb-2">Resources Coming Soon</h3>
+          <p className="text-sm text-on-surface-variant max-w-md">
+            We are currently building our repository for {user.exam_name}. Stay tuned for mindmaps, PYQs, and premium notes!
+          </p>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case 'mindmaps': return <MindmapSection query={q} />;
       case 'books':    return <BooksSection query={q} />;

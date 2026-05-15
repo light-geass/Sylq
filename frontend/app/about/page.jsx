@@ -2,8 +2,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 export const metadata = {
-  title: 'Sylq - the Gater',
-  description: 'The story and mission behind Sylq, India\'s most advanced AI-powered GATE prep platform.',
+  title: 'About Sylq AI',
+  description: 'The story and mission behind Sylq, India\'s most advanced AI-powered competitive exam preparation platform.',
 };
 
 const TEAM = [
@@ -31,11 +31,11 @@ export default function AboutPage() {
           </div>
           
           <h1 className="text-display-lg text-on-surface mb-6">
-            Sylq - <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#abc7ff] to-[#45f0f4]">the Gater.</span>
+            Sylq - <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#abc7ff] to-[#45f0f4]">Your Exam Expert.</span>
           </h1>
           
           <p className="text-body-lg text-on-surface-variant leading-relaxed">
-            We are redefining GATE preparation. Traditional mock tests tell you what you scored. 
+            We are redefining competitive exam preparation. Traditional mock tests tell you what you scored. 
             Sylq tells you exactly <em>why</em> you scored it, and exactly <em>how</em> to improve.
           </p>
         </div>
@@ -49,13 +49,13 @@ export default function AboutPage() {
             <h2 className="text-3xl font-bold text-on-surface mb-6">Beyond ordinary prep.</h2>
             <div className="space-y-4 text-on-surface-variant leading-relaxed">
               <p>
-                The journey to crack GATE is grueling. Millions of aspirants struggle not because they lack dedication, 
+                The journey to crack competitive exams is grueling. Millions of aspirants struggle not because they lack dedication, 
                 but because they lack targeted feedback. You can solve 100 questions, but if you don't know the cognitive gaps 
                 causing your errors, you'll make the same mistakes on the exam day.
               </p>
               <p>
                 That's why we built <strong className="text-[#abc7ff]">Sylq</strong>. By combining advanced AI diagnostics 
-                with an exhaustive, highly-curated repository of GATE questions, we provide instant, personalized interventions.
+                with an exhaustive, highly-curated repository of exam questions, we provide instant, personalized interventions.
               </p>
             </div>
           </div>
@@ -130,7 +130,7 @@ export default function AboutPage() {
             Ready to upgrade your preparation?
           </h2>
           <p className="text-on-surface-variant mb-8 max-w-lg mx-auto">
-            Join thousands of smart aspirants using Sylq to secure top ranks in GATE.
+            Join thousands of smart aspirants using Sylq to secure top ranks in competitive exams.
           </p>
           <Link href="/auth/signup" className="cyber-btn-cyan px-10 py-4 text-sm inline-block uppercase tracking-widest font-bold">
             Start a Free Test

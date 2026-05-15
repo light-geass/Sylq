@@ -5,6 +5,7 @@ import TopBar from '@/components/TopBar';
 import Footer from '@/components/Footer';
 import BackgroundEffects from '@/components/BackgroundEffects';
 import ChatbotFab_Sylq from '@/components/ChatbotFab_Sylq';
+import ExamSelectModal from '@/components/ExamSelectModal';
 import { AuthProvider } from '@/context/AuthContext';
 import './globals.css';
 import 'katex/dist/katex.min.css';
@@ -12,15 +13,17 @@ import 'katex/dist/katex.min.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'Sylq - AI-Powered GATE Exam Prep',
-  description: 'The ultimate AI-powered platform to conquer the GATE exam. Personalized study plans, adaptive tests, and expert insights.',
+  title: 'Sylq - AI-Powered Competitive Exam Preparation',
+  description: 'The ultimate AI-powered platform for competitive exam excellence. Personalized study plans, adaptive tests, and expert insights for GATE, CAT, and more.',
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
-        <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="beforeInteractive" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&display=swap" rel="stylesheet" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
         <AuthProvider>
@@ -36,6 +39,7 @@ export default function RootLayout({ children }) {
           <Footer />
           <Navbar />
           <ChatbotFab_Sylq />
+          <ExamSelectModal />
         </AuthProvider>
       </body>
     </html>

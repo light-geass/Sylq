@@ -21,7 +21,7 @@ export default function Navbar() {
     <nav
       id="bottom-navbar"
       className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50"
-      style={{ width: 'min(96vw, 560px)' }}
+      style={{ width: 'min(94vw, 680px)' }}
     >
       {/* ── Glass Background Layer (Surefire Bug Fix) ── */}
       <div className="absolute inset-0 pointer-events-none" style={{
@@ -79,7 +79,7 @@ export default function Navbar() {
               className={`text-[10px] font-semibold tracking-wide transition-colors duration-200 ${isActive('/plan') ? 'text-[#45f0f4]' : 'text-[#6b7280] group-hover:text-[#9ca3af]'}`}
               style={{ fontFamily: 'Inter, sans-serif' }}
             >
-              Plan
+              Planner
             </span>
           </Link>
         </div>

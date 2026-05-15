@@ -81,7 +81,10 @@ async def get_optional_current_user(
         age=profile.get("age"),
         gender=profile.get("gender"),
         plan=profile.get("plan", "free"),
-        profile_exists=True
+        profile_exists=True,
+        exam_id=profile.get("exam_id"),
+        branch_id=profile.get("branch_id"),
+        exam_name=profile.get("exam_name"),
     )
 
 
@@ -124,18 +127,36 @@ async def get_current_user(
         age=profile.get("age"),
         gender=profile.get("gender"),
         plan=profile.get("plan", "free"),
-        profile_exists=True
+        profile_exists=True,
+        exam_id=profile.get("exam_id"),
+        branch_id=profile.get("branch_id"),
+        exam_name=profile.get("exam_name"),
     )
 
 def _get_profile(user_id: str):
-    """Fetch profile from Supabase."""
+    """Fetch profile from Supabase, joining Exam table for exam_name."""
     try:
-        # Direct query now that both user_id and profile.id are TEXT
-        res = supabase.table("profiles").select("*").eq("id", user_id).execute()
+        res = supabase.table("profiles").select('*, "Exam"(exam_name)').eq("id", user_id).execute()
         if res.data and len(res.data) > 0:
-            return res.data[0]
+            profile = res.data[0]
+            # Flatten the joined Exam data
+            exam_data = profile.pop("Exam", None)
+            if exam_data and isinstance(exam_data, dict):
+                profile["exam_name"] = exam_data.get("exam_name")
+            else:
+                profile["exam_name"] = None
+            return profile
     except Exception as e:
         print(f"[Auth] Error fetching profile: {str(e)}")
+        # Fallback: try without join
+        try:
+            res = supabase.table("profiles").select("*").eq("id", user_id).execute()
+            if res.data and len(res.data) > 0:
+                profile = res.data[0]
+                profile["exam_name"] = None
+                return profile
+        except:
+            pass
     return None
 
 @router.post("/register-profile")
@@ -254,6 +275,10 @@ async def update_profile(
         update_payload["age"] = data.age
     if data.gender is not None:
         update_payload["gender"] = data.gender
+    if data.exam_id is not None:
+        update_payload["exam_id"] = data.exam_id
+    if data.branch_id is not None:
+        update_payload["branch_id"] = data.branch_id
 
     if not update_payload:
         raise HTTPException(status_code=400, detail="No fields to update")

@@ -15,6 +15,7 @@ Your schema (from core.py analysis):
 
 questions table columns:
   id              uuid (default gen_random_uuid())
+  exam_id         int   FK → Exam (REQUIRED — scopes questions to an exam)
   question_blocks jsonb
   question_text   text
   question_type   text  ("MCQ" | "NAT" | "MSQ")
@@ -22,7 +23,7 @@ questions table columns:
   correct_answer  jsonb (string for MCQ, float for NAT, array for MSQ)
   difficulty      text  ("easy" | "medium" | "hard")
   marks           int   (1 or 2)
-  branch_ids      int[] (array of branch IDs)
+  branch_ids      int[] (array of branch IDs, only for GATE)
   subject_id      int   FK → subjects
   topic_id        int   FK → topics
   is_pyq          bool
@@ -31,6 +32,9 @@ questions table columns:
   explanation     text
   isStructured    bool
   created_at      timestamptz (auto)
+
+  NOTE: Always set exam_id when inserting questions.
+        Index: CREATE INDEX idx_questions_exam_id ON questions(exam_id);
 
 test_sessions table (NEW — run the SQL below in Supabase SQL editor):
 

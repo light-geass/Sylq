@@ -21,12 +21,13 @@ Phase 5 — AI Post-Test Analysis endpoints.
 """
 
 import json
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 
 from database import supabase
 from routers.auth import get_current_user
 from schemas import UserInfo
-from services.analysis import generate_study_plan, calculate_sincerity
+from services.analysis import generate_study_plan, calculate_sincerity, generate_holistic_plan
 from services.video_map import get_video_recommendations
 from services.scoring import build_topic_summary, check_answer
 
@@ -135,7 +136,7 @@ def generate_analysis(
     percentage    = round(score / total_marks * 100, 1)
 
     # ── 1. AI study plan — ONE Gemini call ──────────────────────────────────
-    study_plan = generate_study_plan(topic_summary, percentage)
+    study_plan = generate_study_plan(topic_summary, percentage, current_user.exam_name)
 
     # ── 2. Sincerity score — pure math ────────────────────────────────────
     behavioral = calculate_sincerity(time_per_q, total_marks)
@@ -163,6 +164,153 @@ def generate_analysis(
         "videos":        videos,
         "topic_summary": topic_summary,
         "percentage":    percentage,
+    }
+
+
+from pydantic import BaseModel
+
+class StudyPlanRequest(BaseModel):
+    duration_days: int = 30
+    preferences: str = ""
+
+# ── GET /analysis/global-plan ────────────────────────────────────────────────
+@router.get("/global-plan")
+def get_global_study_plan(current_user: UserInfo = Depends(get_current_user)):
+    """
+    Fetch the existing 30-day holistic roadmap.
+    """
+    try:
+        # Check usage for TODAY only
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        
+        usage_res = (
+            supabase.table("global_study_plans")
+            .select("id", count="exact")
+            .eq("user_id", current_user.user_id)
+            .gte("created_at", today_start)
+            .execute()
+        )
+        count = usage_res.count or 0
+        limit = 10 if current_user.plan == "premium" else 1
+
+        existing = (
+            supabase.table("global_study_plans")
+            .select("*")
+            .eq("user_id", current_user.user_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            # Return existing cached plan
+            return {
+                **existing.data[0]["plan_data"],
+                "usage_count": count,
+                "usage_limit": limit,
+                "is_cached": True
+            }
+        else:
+            # User wants to view, but no plan exists. Do NOT auto-generate.
+            return {
+                "empty_state": True,
+                "usage_count": count,
+                "usage_limit": limit,
+            }
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise
+        if "relation \"public.global_study_plans\" does not exist" in str(e) or "global_study_plans" in str(e):
+            raise HTTPException(status_code=500, detail="Database table 'global_study_plans' is missing. Please run the setup SQL.")
+        raise
+
+
+# ── POST /analysis/global-plan ────────────────────────────────────────────────
+@router.post("/global-plan")
+def generate_global_study_plan(
+    req: StudyPlanRequest,
+    current_user: UserInfo = Depends(get_current_user)
+):
+    """
+    Generate a holistic roadmap (consumes 1 generation credit).
+    """
+    try:
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        
+        usage_res = (
+            supabase.table("global_study_plans")
+            .select("id", count="exact")
+            .eq("user_id", current_user.user_id)
+            .gte("created_at", today_start)
+            .execute()
+        )
+        count = usage_res.count or 0
+        limit = 10 if current_user.plan == "premium" else 1
+
+        # 1. Check generation limit
+        if count >= limit:
+            raise HTTPException(
+                status_code=402, 
+                detail=f"Study Plan generation limit reached ({count}/{limit}). Upgrade your plan for more generations."
+            )
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise
+        if "relation \"public.global_study_plans\" does not exist" in str(e) or "global_study_plans" in str(e):
+            raise HTTPException(status_code=500, detail="Database table 'global_study_plans' is missing. Please run the setup SQL.")
+        raise
+
+    # 2. Fetch last 20 tests for context
+    result = (
+        supabase.table("test_sessions")
+        .select("id, score, total_marks, submitted_at")
+        .eq("user_id", current_user.user_id)
+        .eq("status", "submitted")
+        .order("submitted_at", desc=True)
+        .limit(20)
+        .execute()
+    )
+    
+    history = result.data or []
+    if not history:
+        return {
+            "executive_summary": "No test history found. Take a few mock tests to generate your personalized roadmap!",
+            "phases": [],
+            "daily_routine_tip": "Start by attempting your first mini-mock test today.",
+            "usage_count": count,
+            "usage_limit": limit,
+            "duration_label": f"{req.duration_days}-Day Plan"
+        }
+
+    # 3. Format performance summary
+    perf_lines = []
+    for t in history:
+        pct = round(t["score"] / t["total_marks"] * 100, 1) if t["total_marks"] else 0
+        date = t["submitted_at"][:10] if t["submitted_at"] else "N/A"
+        perf_lines.append(f"- Test on {date}: {pct}% score ({t['score']}/{t['total_marks']} marks)")
+    
+    perf_data = "\n".join(perf_lines)
+    
+    # 4. Generate New Plan
+    plan = generate_holistic_plan(
+        performance_data=perf_data, 
+        exam_name=current_user.exam_name,
+        duration_days=req.duration_days,
+        preferences=req.preferences
+    )
+    
+    # 5. Persist the plan
+    if "error" not in plan:
+        supabase.table("global_study_plans").insert({
+            "user_id": current_user.user_id,
+            "plan_data": plan
+        }).execute()
+        count += 1
+
+    return {
+        **plan,
+        "usage_count": count,
+        "usage_limit": limit,
+        "is_cached": False
     }
 
 

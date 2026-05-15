@@ -33,11 +33,8 @@ class Difficulty(str, Enum):
     medium = "medium"
     hard   = "hard"
 
-class TestLength(int, Enum):
-    quick        = 10
-    medium       = 25
-    intermediate = 45
-    full         = 65
+# TestLength is no longer a fixed enum — each exam has its own official count.
+# Valid values are enforced by the validator in TestCreateRequest instead.
 
 
 # ── Content Block (mirrors core.py structure) ─────────────────────────────────
@@ -106,21 +103,14 @@ class TestCreateRequest(BaseModel):
     The user picks their filters on the customization screen,
     this gets sent as JSON, and the engine builds the test.
     """
-    branch_code:   str = "DA"
-    subject_ids:   list[int] = []       # empty = all subjects
-    topic_ids:     list[int] = []       # empty = all topics
+    exam_id:       Optional[int] = None  # Required for multi-exam scoping
+    branch_code:   Optional[str] = None  # Only for branch-based exams (GATE)
+    subject_ids:   list[int] = []        # empty = all subjects
+    topic_ids:     list[int] = []        # empty = all topics
     difficulty:    Optional[Difficulty] = None   # None = mixed
-    question_types: list[str] = []      # empty = all types
-    total_questions: TestLength = TestLength.medium   # 10 / 25 / 45 / 65
-    pyq_only:      bool = False         # True only for premium users
-
-    @field_validator("branch_code")
-    @classmethod
-    def branch_must_be_valid(cls, v):
-        allowed = {"DA", "CS", "EE", "EC", "ME", "CE"}
-        if v.upper() not in allowed:
-            raise ValueError(f"branch_code must be one of {allowed}")
-        return v.upper()
+    question_types: list[str] = []       # empty = all types
+    total_questions: int = Field(default=25, ge=5, le=200)  # 5–200 covers all exams
+    pyq_only:      bool = False          # True only for premium users
 
 
 class TestSession(BaseModel):
@@ -208,6 +198,9 @@ class UserInfo(BaseModel):
     gender:       Optional[str] = None
     plan:         str = "free"              # "free" | "premium"
     profile_exists: bool = False
+    exam_id:      Optional[int] = None      # FK → Exam table
+    branch_id:    Optional[int] = None      # FK → branches (only for branch-based exams)
+    exam_name:    Optional[str] = None      # Denormalized for frontend display
 
 class ProfileRegister(BaseModel):
     firstName: str = ""
@@ -234,6 +227,8 @@ class ProfileUpdate(BaseModel):
     last_name:  Optional[str] = None
     age:        Optional[int] = None
     gender:     Optional[str] = None
+    exam_id:    Optional[int] = None        # Change exam selection
+    branch_id:  Optional[int] = None        # Change branch (GATE only)
 
     @field_validator("age", mode="before")
     @classmethod
@@ -265,3 +260,17 @@ class CourseOut(BaseModel):
     is_paid: bool = False
     duration: Optional[str] = None
     channel: Optional[str] = None
+    exam_ids: Optional[list[int]] = None       # Array of exam IDs
+
+class ResourceOut(BaseModel):
+    id: int
+    title: str
+    category: str                       # mindmaps, books, notes, formulas, pyqs
+    subtitle: Optional[str] = None      # chapter name, author, pages etc.
+    is_free: bool = True
+    price: Optional[str] = None
+    pages: Optional[int] = None
+    url: Optional[str] = None
+    rating: float = 0.0
+    year: Optional[int] = None
+    exam_ids: Optional[list[int]] = None

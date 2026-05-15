@@ -65,12 +65,18 @@ def fetch_question_pool(request: TestCreateRequest) -> QuestionBuckets:
 
     # ── Apply filters ──────────────────────────────────────────────────────
 
-    # Branch filter: branch_ids is an int[] column
+    # Exam filter: scope questions to the user's exam
+    if request.exam_id:
+        query = query.contains("exam_ids", [str(request.exam_id)])
+
+    # Branch filter: only for branch-based exams (GATE)
+    # branch_ids is an int[] column
     # .contains() → PostgreSQL @> operator: "array contains value"
-    from database import get_branch_id
-    branch_id = get_branch_id(request.branch_code)
-    if branch_id:
-        query = query.contains("branch_ids", [str(branch_id)])
+    if request.branch_code:
+        from database import get_branch_id
+        branch_id = get_branch_id(request.branch_code)
+        if branch_id:
+            query = query.contains("branch_ids", [str(branch_id)])
 
     # Subject filter
     if request.subject_ids:
@@ -111,59 +117,9 @@ def fetch_question_pool(request: TestCreateRequest) -> QuestionBuckets:
 
     return QuestionBuckets(mcq=mcq, nat=nat, msq=msq)
 
+from services.exam_rules import get_exam_type_counts, apply_mark_distribution
 
-def calculate_type_counts(total: int) -> tuple[int, int, int]:
-    """
-    Calculate how many MCQ, NAT, MSQ questions to pick.
-
-    GATE DA ratio is 2:1:1 → out of every 4 questions: 2 MCQ, 1 NAT, 1 MSQ
-
-    For any total:
-      mcq = total * 2/4 = total // 2
-      nat = total * 1/4
-      msq = remaining
-
-    Examples:
-      total=12  → mcq=6, nat=3, msq=3
-      total=28  → mcq=14, nat=7, msq=7
-      total=45  → mcq=22, nat=11, msq=12
-      total=65  → mcq=32, nat=16, msq=17
-    """
-    mcq_count = total // 2
-    nat_count = total // 4
-    msq_count = total - mcq_count - nat_count
-    return mcq_count, nat_count, msq_count
-
-
-def calculate_mark_distribution(
-    questions: list[dict],
-    two_mark_target: int,
-    one_mark_target: int,
-) -> list[dict]:
-    """
-    After selecting questions by type, enforce the 7:6 two-mark:one-mark ratio.
-
-    Strategy:
-      1. Separate selected questions into 2-mark and 1-mark pools
-      2. If there are more 2-mark than target, randomly swap some to 1-mark pool
-      3. This ensures the marks distribution matches GATE pattern
-
-    Note: We don't change the questions themselves, just rebalance which
-    ones we keep to hit the target counts.
-    """
-    two_mark = [q for q in questions if q.get("marks") == 2]
-    one_mark  = [q for q in questions if q.get("marks") == 1]
-
-    # Trim if we have too many of either
-    if len(two_mark) > two_mark_target:
-        two_mark = random.sample(two_mark, two_mark_target)
-    if len(one_mark) > one_mark_target:
-        one_mark = random.sample(one_mark, one_mark_target)
-
-    return two_mark + one_mark
-
-
-def select_questions(request: TestCreateRequest) -> list[dict]:
+def select_questions(request: TestCreateRequest, exam_name: str | None = None) -> list[dict]:
     """
     MAIN ENTRY POINT for test generation.
 
@@ -180,8 +136,8 @@ def select_questions(request: TestCreateRequest) -> list[dict]:
     The router handles schema conversion.
     """
     try:
-        total = request.total_questions.value  # 12 / 28 / 45 / 65
-        mcq_need, nat_need, msq_need = calculate_type_counts(total)
+        total = request.total_questions  # plain int now (e.g. 75 for JEE, 180 for NEET)
+        mcq_need, nat_need, msq_need = get_exam_type_counts(exam_name, total)
 
         # ── Step 1: Fetch pools ────────────────────────────────────────────────
         buckets = fetch_question_pool(request)
@@ -207,12 +163,7 @@ def select_questions(request: TestCreateRequest) -> list[dict]:
 
         # ── Step 4: Combine and apply mark ratio ──────────────────────────────
         all_selected = mcq_selected + nat_selected + msq_selected
-        two_mark_target = round(len(all_selected) * 7 / 13)
-        one_mark_target = len(all_selected) - two_mark_target
-
-        all_selected = calculate_mark_distribution(
-            all_selected, two_mark_target, one_mark_target
-        )
+        all_selected = apply_mark_distribution(exam_name, all_selected, len(all_selected))
 
         # ── Step 5: Shuffle ────────────────────────────────────────────────────
         random.shuffle(all_selected)

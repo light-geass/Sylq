@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth } from '../app/firebase_SDK';
-import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
+import { onIdTokenChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { setApiToken, getMe } from '@/lib/api';
 
 const AuthContext = createContext({
@@ -49,15 +49,26 @@ export const AuthProvider = ({ children }) => {
   }
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      setLoading(true);
+    let isInitial = true;
+    const unsubscribe = onIdTokenChanged(auth, async (fbUser) => {
       if (fbUser) {
-        await fetchProfile(fbUser);
+        // Keep API token fresh
+        const token = await fbUser.getIdToken();
+        setApiToken(token);
+        
+        // Fetch profile only on initial load
+        if (isInitial) {
+          setLoading(true);
+          await fetchProfile(fbUser);
+          setLoading(false);
+          isInitial = false;
+        }
       } else {
         setUser(null);
         setApiToken(null);
+        setLoading(false);
+        isInitial = false;
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();

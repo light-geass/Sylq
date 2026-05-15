@@ -20,6 +20,7 @@ const MENU_ITEMS = [
           </svg>
         ),
       },
+
       {
         label: 'My Courses',
         href: '/my-courses',
@@ -124,33 +125,35 @@ export default function TopBar() {
   return (
     <>
       {/* ── TopBar strip ── */}
-      <header className="fixed top-0 left-0 right-0 z-[100] h-20 pointer-events-none">
-        {/* Background Mask - ensures content doesn't 'collide' with the bar items */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0D1117] via-[#0D1117]/80 to-transparent backdrop-blur-md" />
+      <header className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] h-16 w-[calc(100%-1.5rem)] pointer-events-none">
+        {/* Floating Capsule Background */}
+        <div className="absolute inset-0 bg-[#0D1117]/80 backdrop-blur-xl border border-white/10 rounded-full shadow-[0_12px_40px_rgba(0,0,0,0.5)]" />
         
-        <div className="relative flex items-center justify-between px-5 pt-2 h-full">
+        <div className="relative flex items-center justify-between px-8 h-full">
         <Link href="/" className="pointer-events-auto flex items-center gap-2.5 group select-none">
           <div className="relative">
             <img
               src="/logo.png"
               alt="Sylq Logo"
-              className="h-12 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+              className="h-9 w-auto object-contain transition-all duration-300 group-hover:scale-105"
               style={{
                 filter: 'drop-shadow(0 0 12px rgba(69,240,244,0.3))'
               }}
             />
           </div>
           <span 
-            className="text-2xl font-bold tracking-tight text-white transition-all duration-300 group-hover:text-[#45f0f4]"
+            className="text-3xl font-bold tracking-tight text-white transition-all duration-300 group-hover:text-[#45f0f4]"
             style={{ 
-              fontFamily: 'Inter, sans-serif',
-              letterSpacing: '-0.02em',
-              textShadow: '0 0 20px rgba(69,240,244,0.1)'
+              fontFamily: 'var(--font-brand)',
+              textShadow: '0 0 20px rgba(69,240,244,0.1)',
+              lineHeight: '1'
             }}
           >
             Sylq
           </span>
         </Link>
+        
+
 
         <div className="flex items-center gap-3">
           <Link
@@ -224,9 +227,9 @@ export default function TopBar() {
           width: '300px',
           transform: menuOpen ? 'translateX(0)' : 'translateX(100%)',
           transition: 'transform 0.32s cubic-bezier(0.4, 0, 0.2, 1)',
-          background: 'rgba(13, 17, 23, 0.96)',
-          backdropFilter: 'blur(32px) saturate(1.8)',
-          WebkitBackdropFilter: 'blur(32px) saturate(1.8)',
+          background: 'rgba(10, 14, 20, 0.98)',
+          backdropFilter: 'blur(20px) saturate(1.6)',
+          WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
           borderLeft: '1px solid rgba(255,255,255,0.07)',
           boxShadow: '-20px 0 60px rgba(0,0,0,0.5)',
         }}
@@ -248,7 +251,7 @@ export default function TopBar() {
         </div>
 
         <div className="px-5 py-5 border-b border-white/5">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 w-full">
             <div
               className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{ background: 'linear-gradient(135deg, rgba(69,240,244,0.15), rgba(171,199,255,0.1))', border: '1px solid rgba(69,240,244,0.2)' }}
@@ -257,15 +260,22 @@ export default function TopBar() {
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
               </svg>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-white truncate max-w-[180px]">
-                {user?.first_name 
-                  ? `${user.first_name} ${user.last_name || ''}`.trim() 
-                  : user?.displayName || user?.email?.split('@')[0] || 'User'}
-              </p>
-              <p className="text-xs text-[#6b7280] uppercase tracking-widest font-bold" style={{ fontFamily: 'JetBrains Mono' }}>
-                {user?.plan || 'Free'} Plan
-              </p>
+            <div className="flex-1 flex items-center justify-between min-w-0">
+              <div>
+                <p className="text-sm font-semibold text-white truncate max-w-[140px]">
+                  {user?.first_name 
+                    ? `${user.first_name} ${user.last_name || ''}`.trim() 
+                    : user?.displayName || user?.email?.split('@')[0] || 'User'}
+                </p>
+                <p className="text-xs text-[#6b7280] uppercase tracking-widest font-bold" style={{ fontFamily: 'JetBrains Mono' }}>
+                  {user?.plan || 'Free'} Plan
+                </p>
+              </div>
+              {user?.exam_name && (
+                <span className="flex-shrink-0 px-2 py-0.5 rounded-md bg-[#45f0f4]/10 border border-[#45f0f4]/20 text-[10px] font-bold text-[#45f0f4] uppercase tracking-tighter">
+                  {user.exam_name}
+                </span>
+              )}
             </div>
           </div>
         </div>

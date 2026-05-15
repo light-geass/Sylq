@@ -265,17 +265,23 @@ export default function CoursesPage() {
   const [search, setSearch] = useState('');
   const [dbCourses, setDbCourses] = useState([]);
 
+  const [loadingCourses, setLoadingCourses] = useState(true);
+
   useEffect(() => {
     if (user?.profile_exists) {
-      getCourses()
+      setLoadingCourses(true);
+      getCourses(user.exam_id)
         .then(data => {
-            if (data && data.length > 0) setDbCourses(data);
+            if (data) setDbCourses(data);
         })
-        .catch(err => console.error("Failed to fetch courses from DB:", err));
+        .catch(err => console.error("Failed to fetch courses from DB:", err))
+        .finally(() => setLoadingCourses(false));
     }
   }, [user]);
 
-  const displayCourses = dbCourses.length > 0 ? dbCourses : ALL_COURSES;
+  // If DB returned nothing, and user is GATE, fall back to hardcoded. If not GATE, it stays empty.
+  const isGate = user?.exam_name && user.exam_name.toLowerCase().includes('gate');
+  const displayCourses = dbCourses.length > 0 ? dbCourses : (isGate ? ALL_COURSES : []);
 
   const handleEnroll = async (courseId) => {
     try {
@@ -298,7 +304,7 @@ export default function CoursesPage() {
     return (
       <AccessDenied 
         title="Curated Learning" 
-        message="Log in to access expert-vetted learning paths and premium GATE preparation programs."
+        message="Log in to access expert-vetted learning paths and premium preparation programs."
       />
     );
   }
@@ -330,7 +336,7 @@ export default function CoursesPage() {
             Learn from the <span className="text-[#45f0f4]">best.</span>
           </h1>
           <p className="text-body-lg text-on-surface-variant max-w-xl mx-auto">
-            Expert-vetted learning paths and premium comprehensive programs designed to fast-track your GATE DA success.
+            Expert-vetted learning paths and premium comprehensive programs designed to fast-track your exam success.
           </p>
         </div>
       </div>
@@ -414,16 +420,34 @@ export default function CoursesPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filtered.map((course) => (
-            <CourseCard key={course.id} course={course} onEnroll={handleEnroll} />
-          ))}
-        </div>
-
-        {filtered.length === 0 && (
+        {loadingCourses ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+             <div className="w-8 h-8 border-2 border-[#45f0f4]/20 border-t-[#45f0f4] rounded-full animate-spin" />
+             <p className="text-xs text-outline font-mono">Loading courses...</p>
+          </div>
+        ) : filtered.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filtered.map((course) => (
+              <CourseCard key={course.id} course={course} onEnroll={handleEnroll} />
+            ))}
+          </div>
+        ) : search ? (
           <div className="text-center py-20">
             <p className="text-on-surface-variant text-body-lg mb-2">No matches found for &ldquo;{search}&rdquo;</p>
             <button onClick={() => setSearch('')} className="text-[#45f0f4] text-sm hover:underline">Clear all filters</button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+             <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center mb-4">
+               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2">
+                 <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+                 <path d="M8 7h8"/><path d="M8 11h5"/>
+               </svg>
+             </div>
+             <h3 className="text-lg font-bold text-on-surface mb-2">Courses Coming Soon</h3>
+             <p className="text-sm text-on-surface-variant max-w-md">
+               We are currently curating top-tier courses for {user?.exam_name || 'your exam'}. Check back later!
+             </p>
           </div>
         )}
       </section>

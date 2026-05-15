@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
 @import "tailwindcss/base";
 @import "tailwindcss/components";
@@ -6,7 +7,7 @@
 /* ── Base ─────────────────────────────────────────────── */
 :root {
   --bg: #0D1117;
-  --surface: rgba(22, 27, 34, 0.7);
+  --surface: rgba(22, 27, 34, 0.95);
   --primary: #e2e8f0;
   --secondary: #f8fafc;
   --tertiary: #cbd5e1;
@@ -14,6 +15,7 @@
   --text-muted: #c1c6d5;
   --border: rgba(255, 255, 255, 0.08);
   --border-hover: rgba(255, 255, 255, 0.15);
+  --font-brand: "Cormorant Garamond", serif;
 }
 
 * {
@@ -75,11 +77,12 @@ body {
   }
 
   .glass-card {
-    background: rgba(22, 27, 34, 0.7);
-    backdrop-filter: blur(16px) saturate(1.4);
-    -webkit-backdrop-filter: blur(16px) saturate(1.4);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    background: rgba(13, 17, 23, 0.98);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.3s ease, box-shadow 0.3s ease;
   }
 
   .glass-card-navbar::before {

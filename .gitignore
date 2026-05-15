@@ -1,16 +1,16 @@
 # Python
-__pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
-.venv/
-venv/
-ENV/
-env/
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+**/.venv/
+**/venv/
+**/ENV/
+**/env/
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
 backend/firebase-service-account.json
 
 # Node
@@ -39,3 +39,9 @@ Thumbs.db
 .firebase/
 firebase-debug.log*
 FIREBASE_AUTH_REFERENCE.md
+
+# Exam Details
+Sylq_exam_details/*.pdf
+Sylq_exam_details/*.txt
+Questions_ingestion/data/
+scratch/

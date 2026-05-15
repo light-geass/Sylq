@@ -12,7 +12,7 @@ const FEATURES = [
     bg: 'rgba(171,199,255,0.08)',
     border: 'rgba(171,199,255,0.2)',
     title: 'Fully Customizable Tests',
-    desc: 'Filter by subject, topic, difficulty, and question type. Build the exact test you need — from a 12-question quick drill to a full 65-question GATE simulation.',
+    desc: 'Filter by subject, topic, difficulty, and question type. Build the exact test you need — from a 12-question quick drill to a full-length exam simulation.',
   },
   {
     icon: '◈',
@@ -27,8 +27,8 @@ const FEATURES = [
     color: '#86db64',
     bg: 'rgba(134,219,100,0.08)',
     border: 'rgba(134,219,100,0.2)',
-    title: 'Real PYQ Bank (2014–2026)',
-    desc: 'Official GATE previous year questions, tagged by topic and difficulty. Premium users get dedicated PYQ-only test modes.',
+    title: 'Extensive PYQ Bank',
+    desc: 'Official competitive exam previous year questions, tagged by topic and difficulty. Premium users get dedicated PYQ-only test modes.',
   },
   {
     icon: '◌',
@@ -89,7 +89,7 @@ export default function LandingPage() {
               WebkitTextFillColor: 'transparent',
             }}
           >
-            GATE prep.
+            exam prep.
           </span>
         </h1>
 
@@ -118,7 +118,7 @@ export default function LandingPage() {
             Platform features
           </p>
           <h2 className="text-3xl md:text-4xl font-bold text-on-surface" style={{ letterSpacing: '-0.01em' }}>
-            Everything you need to crack GATE
+            Everything you need for your exam
           </h2>
         </div>
 

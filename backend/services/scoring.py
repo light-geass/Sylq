@@ -24,6 +24,7 @@ NAT tolerance:
 """
 
 from typing import Any
+from services.exam_rules import get_scoring_penalty
 
 
 def check_answer(
@@ -31,6 +32,7 @@ def check_answer(
     correct_answer: Any,
     user_answer: Any,
     marks: int,
+    exam_name: str | None = None
 ) -> tuple[bool, float]:
     """
     Returns (is_correct, marks_awarded).
@@ -40,48 +42,48 @@ def check_answer(
         return False, 0.0   # skipped
 
     if question_type == "MCQ":
-        return _check_mcq(correct_answer, user_answer, marks)
+        return _check_mcq(correct_answer, user_answer, marks, exam_name)
     elif question_type == "NAT":
-        return _check_nat(correct_answer, user_answer, marks)
+        return _check_nat(correct_answer, user_answer, marks, exam_name)
     elif question_type == "MSQ":
-        return _check_msq(correct_answer, user_answer, marks)
+        return _check_msq(correct_answer, user_answer, marks, exam_name)
     return False, 0.0
 
 
-def _check_mcq(correct: Any, user: Any, marks: int) -> tuple[bool, float]:
+def _check_mcq(correct: Any, user: Any, marks: int, exam_name: str | None) -> tuple[bool, float]:
     # Normalize to string for comparison (handles "A" vs "a")
     if str(correct).strip().upper() == str(user).strip().upper():
         return True, float(marks)
-    # Negative marking: -1/3 of marks
-    penalty = -round(marks / 3, 4)
+    # Negative marking
+    penalty = get_scoring_penalty(exam_name, "MCQ", marks)
     return False, penalty
 
 
-def _check_nat(correct: Any, user: Any, marks: int) -> tuple[bool, float]:
+def _check_nat(correct: Any, user: Any, marks: int, exam_name: str | None) -> tuple[bool, float]:
     try:
         correct_f = float(correct)
         user_f    = float(user)
     except (TypeError, ValueError):
-        return False, 0.0
+        return False, get_scoring_penalty(exam_name, "NAT", marks)
 
     # 2% tolerance — handles cases like 6.66 vs 6.667
     tolerance = abs(correct_f) * 0.02
     if abs(correct_f - user_f) <= max(tolerance, 0.001):
         return True, float(marks)
-    return False, 0.0   # No negative marking for NAT
+    return False, get_scoring_penalty(exam_name, "NAT", marks)
 
 
-def _check_msq(correct: Any, user: Any, marks: int) -> tuple[bool, float]:
+def _check_msq(correct: Any, user: Any, marks: int, exam_name: str | None) -> tuple[bool, float]:
     # correct and user should both be lists like ["A", "C"]
     try:
         correct_set = {str(x).strip().upper() for x in correct}
         user_set    = {str(x).strip().upper() for x in user}
     except TypeError:
-        return False, 0.0
+        return False, get_scoring_penalty(exam_name, "MSQ", marks)
 
     if correct_set == user_set:
         return True, float(marks)
-    return False, 0.0   # No partial credit, no penalty
+    return False, get_scoring_penalty(exam_name, "MSQ", marks)
 
 
 def build_topic_summary(question_results: list[dict]) -> list[dict]:

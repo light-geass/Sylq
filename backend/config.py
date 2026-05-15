@@ -36,8 +36,10 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000"]
 
     # Free tier limits
-    free_tests_per_day: int = 5
+    free_tests_per_day: int = 3
     free_chatbot_msgs_per_test: int = 10
+    free_roadmap_per_day: int = 1
+    premium_roadmap_per_day: int = 10
 
     model_config = SettingsConfigDict(
         env_file=".env",

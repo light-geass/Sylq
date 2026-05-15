@@ -22,23 +22,50 @@ router = APIRouter(prefix="/questions", tags=["Questions"])
 
 
 @router.get("/subjects")
-def list_subjects():
+def list_subjects(
+    exam_id: int | None = Query(default=None, description="Filter by exam ID"),
+    branch_id: int | None = Query(default=None, description="Filter by branch ID (GATE only)"),
+):
     """
-    Returns all subjects in the taxonomy.
+    Returns subjects, optionally filtered by exam and branch.
     Used by frontend to populate the 'Subject' filter dropdown.
     No auth required — public endpoint.
     """
+    if exam_id is not None:
+        # Dynamic query from DB when exam is specified
+        query = supabase.table("subjects").select("id, name").eq("exam_id", exam_id)
+        if branch_id is not None:
+            query = query.eq("branch_id", branch_id)
+        res = query.order("id").execute()
+        return {"subjects": res.data or []}
+
+    # Fallback: return all subjects from cache (backward compatible)
     return {"subjects": get_all_subjects()}
 
 
 @router.get("/topics")
-def list_topics(subject_id: int = Query(..., description="Subject ID from /subjects")):
+def list_topics(
+    subject_id: int = Query(..., description="Subject ID from /subjects"),
+    exam_id: int | None = Query(default=None, description="Filter by exam ID"),
+):
     """
-    Returns all topics under a given subject.
+    Returns all topics under a given subject, optionally filtered by exam.
     Used by frontend to populate the 'Topic' filter dropdown
     after a subject is selected.
     No auth required — public endpoint.
     """
+    if exam_id is not None:
+        res = (
+            supabase.table("topics")
+            .select("id, name, subject_id")
+            .eq("subject_id", subject_id)
+            .eq("exam_id", exam_id)
+            .order("id")
+            .execute()
+        )
+        return {"topics": res.data or []}
+
+    # Fallback: return from cache
     topics = get_topics_for_subject(subject_id)
     if not topics:
         raise HTTPException(status_code=404, detail=f"No topics found for subject_id={subject_id}")

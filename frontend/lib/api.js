@@ -64,6 +64,12 @@ export const generateAnalysis = (test_id) =>
 export const getAnalysis = (test_id) =>
   req('GET', `/analysis/${test_id}`);
 
+export const getGlobalPlan = () =>
+  req('GET', `/analysis/global-plan`);
+
+export const generateGlobalPlan = (data) =>
+  req('POST', '/analysis/global-plan', data);
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 const asyncGetAuthHeaders = async () => {
   return authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
@@ -81,10 +87,27 @@ export const getMe       = () => req('GET', '/auth/me');
 export const updateProfile = (data) => req('PATCH', '/auth/profile', data);
 
 // ── Courses ────────────────────────────────────────────────────────────────
-export const getCourses   = () => req('GET', '/courses');
+export const getCourses   = (examId) => req('GET', examId ? `/courses?exam_id=${examId}` : '/courses');
 export const getMyCourses = () => req('GET', '/courses/my');
 export const enrollCourse = (courseId) => req('POST', `/courses/${courseId}/enroll`);
+export const getResources = (examId, category) => {
+  let url = `/resources?exam_id=${examId}`;
+  if (category) url += `&category=${category}`;
+  return req('GET', url);
+};
 
+// ── Exams (Multi-Exam Architecture) ────────────────────────────────────────
+export const getExams         = ()           => req('GET', '/exams');
+export const getExam          = (examId)     => req('GET', `/exams/${examId}`);
+export const getExamBranches  = (examId)     => req('GET', `/exams/${examId}/branches`);
+export const getExamSubjects  = (examId, branchId) => {
+  const url = branchId
+    ? `/exams/${examId}/subjects?branch_id=${branchId}`
+    : `/exams/${examId}/subjects`;
+  return req('GET', url);
+};
+export const getExamTopics    = (examId, subjectId) =>
+  req('GET', `/exams/${examId}/subjects/${subjectId}/topics`);
 
 // ---Chatbot----------------------------------------------------------
 export async function streamChatbot(payload, onChunk, onDone) {

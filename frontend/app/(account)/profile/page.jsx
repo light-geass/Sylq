@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { updateProfile } from '@/lib/api';
+import { updateProfile, getExams } from '@/lib/api';
 import AccessDenied from '@/components/AccessDenied';
 
 /* ── Helpers ── */
@@ -118,6 +118,22 @@ export default function ProfilePage() {
   const [saving,  setSaving]    = useState(false);
   const [success, setSuccess]   = useState(false);
   const [error,   setError]     = useState('');
+  const [exams,   setExams]     = useState([]); // For the dropdown when editing
+
+  const loadExams = async () => {
+    try {
+      const data = await getExams();
+      if (data && data.exams) {
+        setExams(data.exams);
+      }
+    } catch (e) {
+      console.error('Failed to load exams', e);
+    }
+  };
+
+  useEffect(() => {
+    loadExams();
+  }, []);
 
   // Editable field state — pulled from AuthContext user (which mirrors /auth/me)
   const [form, setForm] = useState({
@@ -125,6 +141,7 @@ export default function ProfilePage() {
     last_name:  '',
     age:        '',
     gender:     '',
+    exam_id:    '',
   });
 
   useEffect(() => {
@@ -134,6 +151,7 @@ export default function ProfilePage() {
         last_name:  user.last_name  || '',
         age:        user.age        != null ? String(user.age) : '',
         gender:     user.gender     || '',
+        exam_id:    user.exam_id    != null ? String(user.exam_id) : '',
       });
     }
   }, [user]);
@@ -167,6 +185,7 @@ export default function ProfilePage() {
       last_name:  user.last_name  || '',
       age:        user.age != null ? String(user.age) : '',
       gender:     user.gender     || '',
+      exam_id:    user.exam_id != null ? String(user.exam_id) : '',
     });
   }
 
@@ -180,6 +199,7 @@ export default function ProfilePage() {
         last_name:  form.last_name.trim()  || null,
         age:        form.age ? parseInt(form.age, 10) : null,
         gender:     form.gender || null,
+        exam_id:    form.exam_id ? parseInt(form.exam_id, 10) : null,
       };
       await updateProfile(payload);
       // Sync the AuthContext user with fresh DB data
@@ -193,6 +213,7 @@ export default function ProfilePage() {
         last_name:  payload.last_name  || '',
         age:        payload.age != null ? String(payload.age) : '',
         gender:     payload.gender     || '',
+        exam_id:    payload.exam_id != null ? String(payload.exam_id) : '',
       });
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
@@ -280,7 +301,10 @@ export default function ProfilePage() {
           </div>
           {!editing ? (
             <button
-              onClick={() => setEditing(true)}
+              onClick={() => {
+                setEditing(true);
+                loadExams(); // Refetch to be sure
+              }}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-150 hover:scale-105"
               style={{
                 fontFamily: 'JetBrains Mono',
@@ -357,6 +381,46 @@ export default function ProfilePage() {
             editing={editing}
             onChange={set('last_name')}
           />
+          
+          <div className="sm:col-span-2">
+            <Field
+              label="Preparing For"
+              value={user?.exam_name}
+              editing={editing}
+            >
+              {editing ? (
+                <div className="relative">
+                  <select
+                    value={form.exam_id}
+                    onChange={(e) => set('exam_id')(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-[#161b22] border border-white/10 text-[#e2e8f0] text-sm appearance-none cursor-pointer focus:border-[#45f0f4] outline-none"
+                    style={{ WebkitAppearance: 'none' }}
+                  >
+                    <option value="" className="bg-[#0D1117] text-[#6b7280]">Select an exam</option>
+                    {exams.length > 0 ? (
+                      exams.map(e => (
+                        <option key={e.id} value={String(e.id)} className="bg-[#0D1117] text-[#e2e8f0]">
+                          {e.exam_name}
+                        </option>
+                      ))
+                    ) : (
+                      <option disabled className="bg-[#0D1117] text-[#6b7280]">Loading exams...</option>
+                    )}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#6b7280]">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full px-4 py-3 rounded-xl bg-surface-container-low border border-white/5 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-secondary" />
+                  <span className="text-sm text-on-surface font-semibold">{user?.exam_name || 'Not selected'}</span>
+                </div>
+              )}
+            </Field>
+          </div>
           <Field
             label="Age"
             value={form.age ? `${form.age} years` : ''}

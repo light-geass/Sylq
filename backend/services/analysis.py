@@ -22,7 +22,7 @@ gemini_client = genai.Client(api_key=settings.gemini_api_key)
 
 # ── Study plan prompt ─────────────────────────────────────────────────────────
 _PLAN_PROMPT = """\
-You are an expert GATE DA (Data Science & AI) exam coach.
+You are an expert {exam_name} exam coach.
 A student just completed a mock test. Analyze their results and generate a precise 3-day study plan.
 
 Student performance:
@@ -51,7 +51,7 @@ Required JSON format:
 }}"""
 
 
-def generate_study_plan(topic_summary: list[dict], percentage: float) -> dict:
+def generate_study_plan(topic_summary: list[dict], percentage: float, exam_name: str = None) -> dict:
     """
     Calls Gemini API with the topic summary → returns a parsed study plan dict.
     """
@@ -65,6 +65,7 @@ def generate_study_plan(topic_summary: list[dict], percentage: float) -> dict:
     topic_lines = "\n".join(lines) if lines else "  - No topic data available"
 
     prompt = _PLAN_PROMPT.format(
+        exam_name   = exam_name or "competitive",
         percentage  = round(percentage, 1),
         topic_lines = topic_lines,
     )
@@ -78,7 +79,7 @@ def generate_study_plan(topic_summary: list[dict], percentage: float) -> dict:
 
         # Move the context-independent rules to system_instruction for faster processing
         system_instruction = (
-            "You are an expert GATE DA coach. Analyze test results and return a logical priority sequence of topics to cover. "
+            f"You are an expert {exam_name or 'competitive'} exam coach. Analyze test results and return a logical priority sequence of topics to cover. "
             "Rule: Weakest topics (< 50%) MUST be Priority 1 and 2. "
             "Rule: Return ONLY valid JSON. NO markdown. NO preamble."
         )
@@ -210,3 +211,84 @@ def calculate_sincerity(time_per_question: dict, total_marks: int) -> dict:
         "overtime_questions":         overtime_count,
         "verdict":                    verdict,
     }
+
+
+# ── Holistic Study Plan Prompt ────────────────────────────────────────────────
+_HOLISTIC_PLAN_PROMPT = """\
+You are a world-class {exam_name} strategist.
+Based on the student's aggregate performance across multiple mock tests and their custom preferences, generate a high-performance {duration_label} study roadmap.
+
+Aggregate Performance Data:
+{performance_data}
+
+Student's Custom Preferences / Instructions:
+{preferences}
+
+Rules for the Roadmap:
+1. Divide the plan into 3 to 4 logical "phases". 
+   - If it's a 1-day plan, phases could be Morning, Afternoon, Evening.
+   - If it's a 7-day plan, phases could be Day 1-2, Day 3-4, Day 5-6, Day 7.
+   - If it's a 30-day plan, phases should be Weeks 1 to 4.
+2. Ensure the plan heavily focuses on their weak topics from the performance data.
+3. Incorporate any custom preferences requested by the student (e.g., specific subjects, daily hours). If preferences are empty, just optimize based on data.
+4. For each phase, provide 3-4 specific, high-impact goals.
+5. Return ONLY valid JSON. No preamble.
+
+Required JSON format:
+{{
+  "executive_summary": "A high-level view of their preparation status and strategy (2-3 sentences)",
+  "duration_label": "{duration_label}",
+  "phases": [
+    {{
+      "title": "Name of the phase (e.g., 'Phase 1: Critical Recovery (Week 1)' or 'Morning Session')",
+      "focus": "Phase theme or main objective",
+      "goals": [
+        "Goal 1 with specific sub-tasks",
+        "Goal 2 with specific sub-tasks",
+        "Goal 3 with specific sub-tasks"
+      ]
+    }}
+  ],
+  "daily_routine_tip": "One specific habit change or daily routine tip"
+}}"""
+
+def generate_holistic_plan(
+    performance_data: str, 
+    exam_name: str = "competitive",
+    duration_days: int = 30,
+    preferences: str = ""
+) -> dict:
+    """
+    Generates a custom roadmap based on aggregate test history and user preferences.
+    """
+    duration_label = f"{duration_days}-Day" if duration_days > 1 else "1-Day"
+    pref_text = preferences if preferences.strip() else "None provided. Rely purely on performance data."
+
+    prompt = _HOLISTIC_PLAN_PROMPT.format(
+        exam_name=exam_name,
+        performance_data=performance_data,
+        duration_label=duration_label,
+        preferences=pref_text
+    )
+
+    model_name = "models/gemma-4-31b-it"
+    try:
+        print(f"[Analysis] Generating Holistic 30-Day Plan with model: {model_name}")
+        
+        if not settings.gemini_api_key:
+            return {"error": "API key missing"}
+
+        response = gemini_client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config={
+                'response_mime_type': 'application/json',
+                'temperature': 0.2,
+            }
+        )
+        
+        return json.loads(response.text)
+    except Exception as e:
+        print(f"[Analysis] Holistic plan error: {e}")
+        return {"error": str(e)}
+
