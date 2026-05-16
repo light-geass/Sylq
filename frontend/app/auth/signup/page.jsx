@@ -77,8 +77,9 @@ function SignupForm() {
             const idToken = await user.getIdToken(true);
             
             try {
+              const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
               await axios.post(
-                'http://localhost:8000/auth/register-profile',
+                `${apiUrl}/auth/register-profile`,
                 {
                   firstName: signupData.firstName,
                   lastName: signupData.lastName,
@@ -153,8 +154,9 @@ function SignupForm() {
       });
 
       const idToken = await user.getIdToken();
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
       await axios.post(
-        'http://localhost:8000/auth/register-profile',
+        `${apiUrl}/auth/register-profile`,
         {
           firstName: formData.firstName || user.displayName?.split(' ')[0] || '',
           lastName: formData.lastName || user.displayName?.split(' ').slice(1).join(' ') || '',

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/app/supabaseClient';
+import { auth } from '@/app/firebase_SDK';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import { useAuth } from '@/context/AuthContext';
 
 export default function CompleteProfilePage() {
   const [formData, setFormData] = useState({
@@ -14,33 +15,18 @@ export default function CompleteProfilePage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState(null);
+  const { user, loading: authLoading, refreshUser } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
+    if (!authLoading) {
+      if (!user) {
         router.push('/auth/login');
-        return;
+      } else if (user.profile_exists) {
+        router.push('/');
       }
-      setUser(session.user);
-
-      // Check if profile already exists
-      try {
-        const response = await axios.get('http://localhost:8000/auth/me', {
-          headers: { Authorization: `Bearer ${session.access_token}` }
-        });
-        if (response.data.first_name) {
-          // Profile complete, redirect to home
-          router.push('/');
-        }
-      } catch (err) {
-        // Profile doesn't exist or incomplete, continue
-      }
-    };
-    checkUser();
-  }, [router]);
+    }
+  }, [user, authLoading, router]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -52,19 +38,18 @@ export default function CompleteProfilePage() {
     setError('');
 
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const fbUser = auth.currentUser;
+      if (!fbUser) throw new Error('No authenticated user found');
+      const idToken = await fbUser.getIdToken(true);
 
-      const idToken = session?.access_token;
-      if (!idToken) throw new Error('Failed to get auth token');
-
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
       await axios.post(
-        'http://localhost:8000/auth/register-profile',
-        { ...formData, email: user.email },
+        `${apiUrl}/auth/register-profile`,
+        { ...formData, email: fbUser.email },
         { headers: { Authorization: `Bearer ${idToken}` } }
       );
 
+      await refreshUser();
       router.push('/');
     } catch (err) {
       console.error(err);

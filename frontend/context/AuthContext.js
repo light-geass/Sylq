@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { auth } from '../app/firebase_SDK';
 import { onIdTokenChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { setApiToken, getMe } from '@/lib/api';
@@ -15,6 +15,11 @@ const AuthContext = createContext({
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const userRef = useRef(null);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   async function fetchProfile(fbUser) {
     const token = await fbUser.getIdToken(true);
@@ -49,25 +54,22 @@ export const AuthProvider = ({ children }) => {
   }
 
   useEffect(() => {
-    let isInitial = true;
     const unsubscribe = onIdTokenChanged(auth, async (fbUser) => {
       if (fbUser) {
         // Keep API token fresh
         const token = await fbUser.getIdToken();
         setApiToken(token);
         
-        // Fetch profile only on initial load
-        if (isInitial) {
+        // Fetch profile if user is not set yet (initial load or new login)
+        if (!userRef.current || userRef.current.uid !== fbUser.uid) {
           setLoading(true);
           await fetchProfile(fbUser);
           setLoading(false);
-          isInitial = false;
         }
       } else {
         setUser(null);
         setApiToken(null);
         setLoading(false);
-        isInitial = false;
       }
     });
 
