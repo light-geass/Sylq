@@ -78,15 +78,15 @@ const MENU_ITEMS = [
 export default function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
-  const menuRef   = useRef(null);
+  const menuRef = useRef(null);
   const buttonRef = useRef(null);
-  const pathname  = usePathname();
-  const router    = useRouter();
+  const pathname = usePathname();
+  const router = useRouter();
 
-  const isTestRunning = pathname?.startsWith('/test/') && 
-                        !pathname?.includes('/history') && 
-                        !pathname?.includes('/result') &&
-                        !pathname?.includes('/configure');
+  const isTestRunning = pathname?.startsWith('/test/') &&
+    !pathname?.includes('/history') &&
+    !pathname?.includes('/result') &&
+    !pathname?.includes('/configure');
   const hidden = isTestRunning;
   const isAuthPage = pathname?.startsWith('/auth/');
   const hasProfile = user?.profile_exists === true;
@@ -113,9 +113,9 @@ export default function TopBar() {
     if (typeof document !== 'undefined') {
       document.body.style.overflow = menuOpen ? 'hidden' : '';
     }
-    return () => { 
+    return () => {
       if (typeof document !== 'undefined') {
-        document.body.style.overflow = ''; 
+        document.body.style.overflow = '';
       }
     };
   }, [menuOpen]);
@@ -128,85 +128,85 @@ export default function TopBar() {
       <header className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] h-16 w-[calc(100%-1.5rem)] pointer-events-none">
         {/* Floating Capsule Background */}
         <div className="absolute inset-0 bg-[#0D1117]/80 backdrop-blur-xl border border-white/10 rounded-full shadow-[0_12px_40px_rgba(0,0,0,0.5)]" />
-        
+
         <div className="relative flex items-center justify-between px-8 h-full">
-        <Link href="/" className="pointer-events-auto flex items-center gap-2.5 group select-none">
-          <div className="relative">
-            <img
-              src="/logo.png"
-              alt="Sylq Logo"
-              className="h-9 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+          <Link href="/" className="pointer-events-auto flex items-center gap-2.5 group select-none">
+            <div className="relative">
+              <img
+                src="/logo.png"
+                alt="Sylq Logo"
+                className="h-9 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                style={{
+                  filter: 'drop-shadow(0 0 12px rgba(69,240,244,0.3))'
+                }}
+              />
+            </div>
+            <span
+              className="text-3xl font-bold tracking-tight text-white transition-all duration-300 group-hover:text-[#45f0f4]"
               style={{
-                filter: 'drop-shadow(0 0 12px rgba(69,240,244,0.3))'
+                fontFamily: 'var(--font-brand)',
+                textShadow: '0 0 20px rgba(69,240,244,0.1)',
+                lineHeight: '1'
               }}
-            />
-          </div>
-          <span 
-            className="text-3xl font-bold tracking-tight text-white transition-all duration-300 group-hover:text-[#45f0f4]"
-            style={{ 
-              fontFamily: 'var(--font-brand)',
-              textShadow: '0 0 20px rgba(69,240,244,0.1)',
-              lineHeight: '1'
-            }}
-          >
-            Sylq
-          </span>
-        </Link>
-        
-
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/about"
-            className="pointer-events-auto text-sm font-medium text-[#8b919f] hover:text-white transition-colors duration-200 px-1"
-            style={{ fontFamily: 'Inter, sans-serif' }}
-          >
-            About
-          </Link>
-
-          <div className="w-px h-4 bg-white/10" />
-
-          <Link
-            href="/pricing"
-            className="pointer-events-auto text-sm font-medium text-[#8b919f] hover:text-white transition-colors duration-200 px-1"
-            style={{ fontFamily: 'Inter, sans-serif' }}
-          >
-            Pricing
-          </Link>
-
-          <div className="w-px h-4 bg-white/10" />
-
-          {loading ? (
-            <div className="w-8 h-8 rounded-full bg-white/5 animate-pulse" />
-          ) : hasProfile ? (
-            <button
-              ref={buttonRef}
-              onClick={() => setMenuOpen((v) => !v)}
-              className="pointer-events-auto relative w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 hover:ring-2 hover:ring-[#45f0f4]/40"
-              style={{
-                background: menuOpen
-                  ? 'linear-gradient(135deg, rgba(69,240,244,0.15), rgba(171,199,255,0.1))'
-                  : 'rgba(255,255,255,0.06)',
-                border: menuOpen ? '1px solid rgba(69,240,244,0.3)' : '1px solid rgba(255,255,255,0.08)',
-              }}
-              aria-label="Account menu"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={menuOpen ? '#45f0f4' : '#c1c6d5'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-              <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-[#86db64] border-2 border-[#0D1117]" />
-            </button>
-          ) : (
+              Sylq
+            </span>
+          </Link>
+
+
+
+          <div className="flex items-center gap-3">
             <Link
-              href="/auth/login"
-              className="pointer-events-auto cyber-btn-cyan text-[11px] px-4 py-1.5 h-auto uppercase tracking-wider font-bold"
-              style={{ fontFamily: 'JetBrains Mono, monospace' }}
+              href="/about"
+              className="pointer-events-auto text-sm font-medium text-[#8b919f] hover:text-white transition-colors duration-200 px-1"
+              style={{ fontFamily: 'Inter, sans-serif' }}
             >
-              Login
+              About
             </Link>
-          )}
-        </div>
+
+            <div className="w-px h-4 bg-white/10" />
+
+            <Link
+              href="/pricing"
+              className="pointer-events-auto text-sm font-medium text-[#8b919f] hover:text-white transition-colors duration-200 px-1"
+              style={{ fontFamily: 'Inter, sans-serif' }}
+            >
+              Pricing
+            </Link>
+
+            <div className="w-px h-4 bg-white/10" />
+
+            {loading ? (
+              <div className="w-8 h-8 rounded-full bg-white/5 animate-pulse" />
+            ) : hasProfile ? (
+              <button
+                ref={buttonRef}
+                onClick={() => setMenuOpen((v) => !v)}
+                className="pointer-events-auto relative w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 hover:ring-2 hover:ring-[#45f0f4]/40"
+                style={{
+                  background: menuOpen
+                    ? 'linear-gradient(135deg, rgba(69,240,244,0.15), rgba(171,199,255,0.1))'
+                    : 'rgba(255,255,255,0.06)',
+                  border: menuOpen ? '1px solid rgba(69,240,244,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                }}
+                aria-label="Account menu"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={menuOpen ? '#45f0f4' : '#c1c6d5'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-[#86db64] border-2 border-[#0D1117]" />
+              </button>
+            ) : (
+              <Link
+                href="/auth/login"
+                className="pointer-events-auto cyber-btn-cyan text-[11px] px-4 py-1.5 h-auto uppercase tracking-wider font-bold"
+                style={{ fontFamily: 'JetBrains Mono, monospace' }}
+              >
+                Login
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 
@@ -263,8 +263,8 @@ export default function TopBar() {
             <div className="flex-1 flex items-center justify-between min-w-0">
               <div>
                 <p className="text-sm font-semibold text-white truncate max-w-[140px]">
-                  {user?.first_name 
-                    ? `${user.first_name} ${user.last_name || ''}`.trim() 
+                  {user?.first_name
+                    ? `${user.first_name} ${user.last_name || ''}`.trim()
                     : user?.displayName || user?.email?.split('@')[0] || 'User'}
                 </p>
                 <p className="text-xs text-[#6b7280] uppercase tracking-widest font-bold" style={{ fontFamily: 'JetBrains Mono' }}>

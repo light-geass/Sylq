@@ -138,7 +138,7 @@ function MindmapSection({ query }) {
       {filtered.map((item) => (
         <div
           key={item.id}
-          className="group rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+          className="group flex cursor-pointer flex-row gap-3 rounded-2xl p-3 transition-all duration-300 hover:-translate-y-1 sm:block sm:p-5"
           style={{
             background: 'rgba(22, 27, 34, 0.85)',
             border: '1px solid rgba(255, 255, 255, 0.06)',
@@ -147,21 +147,22 @@ function MindmapSection({ query }) {
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)'; }}
         >
           {/* Visual header */}
-          <div className="w-full h-24 rounded-xl mb-4 flex items-center justify-center relative"
+          <div className="relative flex h-[92px] w-[92px] flex-shrink-0 items-center justify-center overflow-hidden rounded-xl sm:mb-4 sm:h-24 sm:w-full"
             style={{ background: 'linear-gradient(135deg, rgba(69, 240, 244, 0.06), rgba(171, 199, 255, 0.04))' }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#45f0f4" strokeWidth="1.2" opacity="0.5">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#45f0f4" strokeWidth="1.2" opacity="0.48" className="sm:h-8 sm:w-8">
               <circle cx="12" cy="12" r="3"/><path d="M12 2v7"/><path d="M12 15v7"/>
               <path d="M4.93 4.93l4.24 4.24"/><path d="M14.83 14.83l4.24 4.24"/>
               <path d="M2 12h7"/><path d="M15 12h7"/>
             </svg>
-            <div className="absolute top-2 right-2">
+            <div className="absolute right-1.5 top-1.5 sm:right-2 sm:top-2">
               <SaveButton resourceKey={`mindmap-${item.id}`} resource={{ title: item.title, category: 'mindmaps', subtitle: item.chapter }} />
             </div>
           </div>
 
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-mono tracking-wider uppercase text-[#45f0f4]">{item.chapter}</span>
-            <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold tracking-wider ${
+          <div className="min-w-0 flex-1 py-0.5 sm:py-0">
+            <div className="mb-1 flex items-start justify-between gap-2 sm:mb-2">
+              <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#45f0f4] sm:text-[10px] sm:tracking-wider">{item.chapter}</span>
+              <span className={`rounded-md px-1.5 py-0.5 text-[9px] font-mono font-bold tracking-wider sm:px-2 sm:text-[10px] ${
               item.free
                 ? 'text-[#86db64]'
                 : 'text-[#abc7ff]'
@@ -173,10 +174,11 @@ function MindmapSection({ query }) {
               {item.free ? 'FREE' : item.price}
             </span>
           </div>
-          <h3 className="text-sm font-semibold text-on-surface mb-1 line-clamp-2 group-hover:text-[#45f0f4] transition-colors">
-            {item.title}
-          </h3>
-          <p className="text-xs text-[#6b7280]">{item.pages} pages</p>
+            <h3 className="mb-1 line-clamp-2 text-[13px] font-semibold leading-snug text-on-surface transition-colors group-hover:text-[#45f0f4] sm:text-sm">
+              {item.title}
+            </h3>
+            <p className="text-[10px] text-[#6b7280] sm:text-xs">{item.pages} pages</p>
+          </div>
         </div>
       ))}
       {filtered.length === 0 && (
@@ -498,7 +500,7 @@ export default function ResourcesPage() {
   return (
     <div className="min-h-screen pb-32">
       {/* ── Hero ── */}
-      <div className="section-container mb-8">
+      <div className="section-container pt-8 md:pt-12 mb-8">
         <div className="text-center max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-6"
             style={{ background: 'rgba(171, 199, 255, 0.08)', border: '1px solid rgba(171, 199, 255, 0.15)' }}>
@@ -509,10 +511,10 @@ export default function ResourcesPage() {
               Study Resources
             </span>
           </div>
-          <h1 className="text-display-lg text-on-surface mb-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-[1.05] tracking-tight text-on-surface mb-4">
             Everything you <span className="text-[#abc7ff]">need.</span>
           </h1>
-          <p className="text-body-lg text-on-surface-variant max-w-xl mx-auto">
+          <p className="text-sm sm:text-base md:text-[17px] text-on-surface-variant max-w-lg mx-auto leading-relaxed">
             A precision-crafted repository of conceptual mindmaps, scholarly guides, and verified academic insights.
           </p>
         </div>

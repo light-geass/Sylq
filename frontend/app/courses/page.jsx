@@ -167,17 +167,17 @@ function CourseCard({ course, onEnroll }) {
 
   return (
     <div
-      className="group rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 glass-card flex flex-col h-full"
+      className="group flex h-full flex-row overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 glass-card sm:flex-col"
       style={{ borderColor: 'rgba(255, 255, 255, 0.08)' }}
     >
       {/* Thumbnail placeholder */}
       <div
-        className="w-full h-32 flex items-center justify-center relative shrink-0"
+        className="relative flex h-[100px] w-[100px] shrink-0 items-center justify-center overflow-hidden sm:h-32 sm:w-full"
         style={{
           background: `linear-gradient(135deg, ${accentBg}, rgba(69, 240, 244, 0.05))`,
         }}
       >
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="1.5" opacity="0.3">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="1.5" opacity="0.28" className="sm:h-8 sm:w-8">
           {course.isPaid ? (
             <>
               <path d="M12 2L2 7l10 5 10-5-10-5z" />
@@ -203,28 +203,28 @@ function CourseCard({ course, onEnroll }) {
       </div>
 
       {/* Info */}
-      <div className="p-4 flex flex-col flex-1">
-        <p className="text-[10px] font-mono mb-1 tracking-wider uppercase" style={{ color: accentColor }}>
+      <div className="flex min-w-0 flex-1 flex-col p-3 sm:p-4">
+        <p className="mb-1 text-[9px] font-mono uppercase tracking-[0.18em] sm:text-[10px] sm:tracking-wider" style={{ color: accentColor }}>
           {course.platform} • {course.isPaid ? course.provider : course.channel}
         </p>
-        <h3 className="text-sm font-semibold text-on-surface mb-2 line-clamp-2 group-hover:text-[#45f0f4] transition-colors">
+        <h3 className="mb-2 line-clamp-2 text-[13px] font-semibold leading-snug text-on-surface transition-colors group-hover:text-[#45f0f4] sm:text-sm">
           {course.title}
         </h3>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <Stars rating={course.rating} />
-          {!course.isPaid && <span className="text-[10px] text-[#8b919f]">{course.duration}</span>}
+          {!course.isPaid && <span className="text-[9px] text-[#8b919f] sm:text-[10px]">{course.duration}</span>}
         </div>
         
         {course.isPaid && (
-          <div className="flex items-center gap-2 mt-3">
-            <span className="text-lg font-bold text-[#45f0f4]" style={{ fontFamily: 'JetBrains Mono' }}>{course.offerPrice}</span>
-            <span className="text-xs text-[#6b7280] line-through">{course.originalPrice}</span>
+          <div className="mt-2 flex items-center gap-2 sm:mt-3">
+            <span className="text-base font-bold text-[#45f0f4] sm:text-lg" style={{ fontFamily: 'JetBrains Mono' }}>{course.offerPrice}</span>
+            <span className="text-[10px] text-[#6b7280] line-through sm:text-xs">{course.originalPrice}</span>
           </div>
         )}
 
-        <div className="flex flex-wrap gap-1.5 mt-3 mb-4">
+        <div className="mt-2 mb-3 flex flex-wrap gap-1.5 sm:mt-3 sm:mb-4">
           {course.tags.map((tag) => (
-            <span key={tag} className="px-2 py-0.5 rounded-md text-[10px] font-mono text-[#8b919f]"
+            <span key={tag} className="rounded-md px-1.5 py-0.5 text-[9px] font-mono text-[#8b919f] sm:px-2 sm:py-0.5 sm:text-[10px]"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
               {tag}
             </span>
@@ -239,7 +239,7 @@ function CourseCard({ course, onEnroll }) {
                         onEnroll(course.id).finally(() => setEnrolling(false));
                     }}
                     disabled={enrolling}
-                    className="w-full py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all duration-200 cyber-btn-cyan disabled:opacity-50"
+                    className="w-full rounded-xl py-2 text-[10px] font-bold uppercase tracking-[0.14em] transition-all duration-200 cyber-btn-cyan disabled:opacity-50 sm:py-2.5 sm:text-[11px] sm:tracking-wider"
                 >
                     {enrolling ? 'Enrolling...' : 'Enroll Now'}
                 </button>
@@ -248,7 +248,7 @@ function CourseCard({ course, onEnroll }) {
                     href={course.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider text-center block transition-all duration-200 cyber-btn-ghost"
+                    className="block w-full rounded-xl py-2 text-center text-[10px] font-bold uppercase tracking-[0.14em] transition-all duration-200 cyber-btn-ghost sm:py-2.5 sm:text-[11px] sm:tracking-wider"
                 >
                     Watch Now →
                 </a>
@@ -332,7 +332,7 @@ export default function CoursesPage() {
       {/* ── Hero Section ── */}
       <div className="section-container mb-10 pt-8">
         <div className="text-center max-w-2xl mx-auto">
-          <h1 className="text-display-lg text-on-surface mb-4">
+          <h1 className="text-[clamp(2rem,6vw,4rem)] font-bold leading-none tracking-tight text-on-surface mb-4 whitespace-nowrap">
             Learn from the <span className="text-[#45f0f4]">best.</span>
           </h1>
           <p className="text-body-lg text-on-surface-variant max-w-xl mx-auto">
