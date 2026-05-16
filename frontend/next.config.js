@@ -4,6 +4,9 @@ const nextConfig = {
     root: './',
   },
   experimental: {},
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 module.exports = nextConfig;

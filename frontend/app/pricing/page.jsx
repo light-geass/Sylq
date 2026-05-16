@@ -29,7 +29,7 @@ const PLANS = [
   {
     name: 'Premium',
     price: { monthly: '₹199', yearly: '₹1,999' },
-    originalPrice: { monthly: '₹299', yearly: '₹3,499' },
+    originalPrice: { monthly: '₹299', yearly: '₹3,599' },
     period: { monthly: 'per month', yearly: 'per year' },
     color: '#e2e8f0',
     border: 'rgba(226,232,240,0.3)',
@@ -189,11 +189,11 @@ export default function PricingPage() {
                       {price}
                     </span>
                     {originalPrice && (
-                      <span className="text-base text-outline line-through opacity-50" style={{ fontFamily: 'JetBrains Mono' }}>
+                      <span className="text-base text-[#a1a1aa] line-through" style={{ fontFamily: 'JetBrains Mono' }}>
                         {originalPrice}
                       </span>
                     )}
-                    <span className="text-sm text-outline">/ {period}</span>
+                    <span className="text-sm text-[#cbd5e1]">/ {period}</span>
                   </div>
 
                   {/* Inner Toggle for Premium */}
