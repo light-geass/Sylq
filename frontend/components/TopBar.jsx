@@ -129,20 +129,20 @@ export default function TopBar() {
         {/* Floating Capsule Background */}
         <div className="absolute inset-0 bg-[#0D1117]/80 backdrop-blur-xl border border-white/10 rounded-full shadow-[0_12px_40px_rgba(0,0,0,0.5)]" />
 
-        <div className="relative flex items-center justify-between px-8 h-full">
-          <Link href="/" className="pointer-events-auto flex items-center gap-2.5 group select-none">
+        <div className="relative flex items-center justify-between px-4 md:px-6 h-full">
+          <Link href="/" className="pointer-events-auto flex items-center gap-2 group select-none">
             <div className="relative">
               <img
                 src="/logo.png"
                 alt="Sylq Logo"
-                className="h-9 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                className="h-7 md:h-9 w-auto object-contain transition-all duration-300 group-hover:scale-105"
                 style={{
                   filter: 'drop-shadow(0 0 12px rgba(69,240,244,0.3))'
                 }}
               />
             </div>
             <span
-              className="text-3xl font-bold tracking-tight text-white transition-all duration-300 group-hover:text-[#45f0f4]"
+              className="text-xl md:text-3xl font-bold tracking-tight text-white transition-all duration-300 group-hover:text-[#45f0f4]"
               style={{
                 fontFamily: 'var(--font-brand)',
                 textShadow: '0 0 20px rgba(69,240,244,0.1)',
@@ -155,10 +155,10 @@ export default function TopBar() {
 
 
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 md:gap-3">
             <Link
               href="/about"
-              className="pointer-events-auto text-sm font-medium text-[#8b919f] hover:text-white transition-colors duration-200 px-1"
+              className="pointer-events-auto text-xs md:text-sm font-medium text-[#8b919f] hover:text-white transition-colors duration-200 px-1"
               style={{ fontFamily: 'Inter, sans-serif' }}
             >
               About
@@ -168,7 +168,7 @@ export default function TopBar() {
 
             <Link
               href="/pricing"
-              className="pointer-events-auto text-sm font-medium text-[#8b919f] hover:text-white transition-colors duration-200 px-1"
+              className="pointer-events-auto text-xs md:text-sm font-medium text-[#8b919f] hover:text-white transition-colors duration-200 px-1"
               style={{ fontFamily: 'Inter, sans-serif' }}
             >
               Pricing
@@ -199,11 +199,11 @@ export default function TopBar() {
               </button>
             ) : (
               <Link
-                href="/auth/login"
-                className="pointer-events-auto cyber-btn-cyan text-[11px] px-4 py-1.5 h-auto uppercase tracking-wider font-bold"
+                href="/auth/signup"
+                className="pointer-events-auto cyber-btn-cyan text-[10px] md:text-[11px] px-3 md:px-4 py-1 md:py-1.5 h-auto uppercase tracking-wider font-bold"
                 style={{ fontFamily: 'JetBrains Mono, monospace' }}
               >
-                Login
+                Signup
               </Link>
             )}
           </div>

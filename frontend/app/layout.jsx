@@ -13,8 +13,21 @@ import 'katex/dist/katex.min.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'Sylq - AI-Powered Competitive Exam Preparation',
-  description: 'The ultimate AI-powered platform for competitive exam excellence. Personalized study plans, adaptive tests, and expert insights for GATE, CAT, and more.',
+  title: "Sylq",
+  description: "AI-Powered Exam Preparation Platform",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Sylq",
+  },
+};
+
+export const viewport = {
+  themeColor: "#0f172a",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({ children }) {
@@ -28,7 +41,7 @@ export default function RootLayout({ children }) {
       <body className={inter.className} suppressHydrationWarning>
         <AuthProvider>
           <BackgroundEffects />
-          
+
           {/* Custom GATER TopBar handles the user profile/login logic internally */}
           <TopBar />
 
@@ -44,6 +57,8 @@ export default function RootLayout({ children }) {
       </body>
     </html>
   );
+
+
 }
 
 
