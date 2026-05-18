@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const AMOUNT = 20;
 const SINE_DOTS = Math.floor(AMOUNT * 0.3);
@@ -9,9 +9,25 @@ const IDLE_TIMEOUT = 150;
 export default function BackgroundEffects() {
   const cursorRef = useRef(null);
   const dotsRef = useRef([]);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    // Hide default cursor
+    // Check if screen is desktop/laptop (>= 1024px)
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mediaQuery.matches);
+
+    const handler = (e) => setIsDesktop(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
+  useEffect(() => {
+    if (!isDesktop) {
+      document.body.style.cursor = 'auto';
+      return;
+    }
+
+    // Hide default cursor on desktop
     document.body.style.cursor = 'none';
 
     let animationFrameId;
@@ -64,14 +80,6 @@ export default function BackgroundEffects() {
       resetIdleTimer();
     };
 
-    const handleTouchMove = (e) => {
-      if (e.touches.length > 0) {
-        mousePosition.x = e.touches[0].clientX;
-        mousePosition.y = e.touches[0].clientY;
-        resetIdleTimer();
-      }
-    };
-
     const positionCursor = (delta) => {
       let x = mousePosition.x;
       let y = mousePosition.y;
@@ -112,18 +120,16 @@ export default function BackgroundEffects() {
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('touchmove', handleTouchMove);
     animationFrameId = requestAnimationFrame(render);
     startIdleTimer();
 
     return () => {
       document.body.style.cursor = 'auto';
       window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('touchmove', handleTouchMove);
       cancelAnimationFrame(animationFrameId);
       clearTimeout(timeoutID);
     };
-  }, []);
+  }, [isDesktop]);
 
   return (
     <>
@@ -174,28 +180,30 @@ export default function BackgroundEffects() {
         </defs>
       </svg>
 
-      {/* ── Interactive Cursor Layer ── */}
-      <div
-        ref={cursorRef}
-        className="pointer-events-none fixed top-0 left-0 w-full h-full z-[9999]"
-        style={{
-          mixBlendMode: 'difference',
-          filter: 'url(#goo)'
-        }}
-      >
-        {Array.from({ length: AMOUNT }).map((_, i) => (
-          <span
-            key={i}
-            ref={(el) => (dotsRef.current[i] = el)}
-            className="absolute block rounded-full bg-white origin-center"
-            style={{
-              width: `${WIDTH}px`,
-              height: `${WIDTH}px`,
-              transform: `translate(calc(-50% - 100px), calc(-50% - 100px)) scale(${1 - 0.05 * i})`,
-            }}
-          />
-        ))}
-      </div>
+      {/* ── Interactive Cursor Layer (Desktop Only) ── */}
+      {isDesktop && (
+        <div
+          ref={cursorRef}
+          className="pointer-events-none fixed top-0 left-0 w-full h-full z-[9999] hidden lg:block"
+          style={{
+            mixBlendMode: 'difference',
+            filter: 'url(#goo)'
+          }}
+        >
+          {Array.from({ length: AMOUNT }).map((_, i) => (
+            <span
+              key={i}
+              ref={(el) => (dotsRef.current[i] = el)}
+              className="absolute block rounded-full bg-white origin-center"
+              style={{
+                width: `${WIDTH}px`,
+                height: `${WIDTH}px`,
+                transform: `translate(calc(-50% - 100px), calc(-50% - 100px)) scale(${1 - 0.05 * i})`,
+              }}
+            />
+          ))}
+        </div>
+      )}
     </>
   );
 }
