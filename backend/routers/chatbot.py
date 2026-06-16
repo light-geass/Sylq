@@ -1,8 +1,7 @@
 """
 routers/chatbot.py — Phase 6: AI Chatbot with SSE streaming.
 Strictly using:
-- Sylq AI: gemini-3.1-flash-lite
-- Examiq AI: gemma-4-31b-it
+- Sylq AI & Examiq AI: Groq (qwen/qwen3.6-27b)
 """
 
 import json
@@ -11,8 +10,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from groq import Groq
-from google import genai
-from google.genai import types
 
 from config import settings
 from services.study_planner_pipeline import describe_exam_image
@@ -23,7 +20,6 @@ from schemas import UserInfo
 router = APIRouter(prefix="/chatbot", tags=["Chatbot"])
 
 # Initialize Clients
-gemini_client = genai.Client(api_key=settings.gemini_api_key)
 groq_client = Groq(api_key=settings.groq_api_key)
 
 # ── Request schema ─────────────────────────────────────────────────────────────
@@ -69,13 +65,13 @@ def chat_stream(
     system_prompt = _build_system_prompt(body.test_id, body.question_id, body.chat_type, exam_name)
 
     # ── Build history ──────────────────────────────────────────────────────
-    gemini_history = []
+    chat_history = []
     for m in body.messages:
         role = "model" if m.role == "assistant" else "user"
-        gemini_history.append({"role": role, "parts": [{"text": m.content}]})
+        chat_history.append({"role": role, "parts": [{"text": m.content}]})
     
     return StreamingResponse(
-        _stream_ai(system_prompt, gemini_history, body.chat_type),
+        _stream_ai(system_prompt, chat_history, body.chat_type),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
     )
@@ -161,25 +157,44 @@ def _build_system_prompt(test_id: str | None, question_id: str | None, chat_type
 def _stream_ai(system_prompt: str, history: list[dict], chat_type: str):
     """
     Generator for AI streaming. 
-    Both Sylq and Examiq now use: Groq (llama-3.3-70b-versatile)
+    Both Sylq and Examiq now use: Groq (qwen/qwen3.6-27b)
     """
     try:
-        model_name = "llama-3.3-70b-versatile"
+        model_name = "qwen/qwen3.6-27b"
         print(f"[Chatbot] Streaming {chat_type} from Groq model: {model_name}")
         
-        # Convert history to OpenAI format for Groq
+        # Convert history to OpenAI format for Groq safely
         groq_messages = [{"role": "system", "content": system_prompt}]
         for h in history:
             role = "assistant" if h["role"] == "model" else "user"
-            groq_messages.append({"role": role, "content": h["parts"][0]["text"]})
+            text_content = ""
+            if "parts" in h and h["parts"]:
+                text_content = h["parts"][0].get("text", "")
+            groq_messages.append({"role": role, "content": text_content})
 
-        response = groq_client.chat.completions.create(
-            model=model_name,
-            messages=groq_messages,
-            temperature=0.3,
-            max_completion_tokens=1024 if chat_type == "analysis" else 800,
-            stream=True,
-        )
+        # Call Groq completions with retry for 429 rate limits
+        max_retries = 3
+        backoff = 1.5
+        response = None
+        for i in range(max_retries):
+            try:
+                response = groq_client.chat.completions.create(
+                    model=model_name,
+                    messages=groq_messages,
+                    temperature=0.3,
+                    max_completion_tokens=1024 if chat_type == "analysis" else 800,
+                    stream=True,
+                )
+                break
+            except Exception as e:
+                # If 429 rate limit is hit, retry after a short delay
+                if "429" in str(e) and i < max_retries - 1:
+                    import time
+                    sleep_time = backoff ** (i + 1)
+                    print(f"[Chatbot] 429 Rate Limit hit. Retrying in {sleep_time:.2f}s...")
+                    time.sleep(sleep_time)
+                    continue
+                raise e
         
         for chunk in response:
             delta = chunk.choices[0].delta.content
